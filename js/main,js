@@ -1,7 +1,6 @@
 /* VELURA - main.js
    Idioma, carrinho, painel de pecas, botao "segure para explorar" e carregamento do 3D. */
-const $ = (s) => document.querySelector(s),
-  $$ = (s) => [...document.querySelectorAll(s)];
+const $= (s) => document.querySelector(s),$$ = (s) => [...document.querySelectorAll(s)];
 /* movimento reduzido: vem do sistema ou do botao do rodape (a classe "rm" e posta no <head>, antes da pintura) */
 let RM = document.documentElement.classList.contains("rm");
 const REM = CONFIG.REMOVABLE_HEADS_CONFIRMED;
@@ -48,22 +47,10 @@ function panel() {
     return;
   }
   $("#pt").textContent = T[L]["ix" + NUM[sel]];
-  $("#pb").textContent = T[L]["pl" + NUM[sel]];
-  p.classList.add("on");
-}
-function render() {
-  const t = T[L];
-  document.documentElement.lang = { en: "en-US", pt: "pt-BR", es: "es" }[L];
-  $$("[data-t]").forEach((e) => (e.textContent = t[e.dataset.t]));
+  $("#pb").textContent = T[L]["pl" + NUM[sel]]; p.classList.add("on"); } function render() { const t = T[L]; document.documentElement.lang = { en: "en-US", pt: "pt-BR", es: "es" }[L]; $$("[data-t]").forEach((e) => (e.textContent = t[e.dataset.t]));
   /* paragrafos das secoes fixas: uma palavra por <span>, que acende com a rolagem (--lw em fadeText, opacidade no CSS) */
-  $$(".sc:not(:first-child):not(.buyx) .tx > p[data-t]").forEach((p) => {
-    const ws = p.textContent.split(" ");
-    p.style.setProperty("--n", ws.length);
-    p.innerHTML = ws
-      .map((w, j) => `<span class="w" style="--j:${j}">${w.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</span>`)
-      .join(" ");
-  });
-  $$(".lang button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.l === L));
+  $$(".sc:not(:first-child):not(.buyx) .tx > p[data-t]").forEach((p) => { const ws = p.textContent.split(" "); p.style.setProperty("--n", ws.length); p.innerHTML = ws .map((w, j) => `<span class="w" style="--j:${j}">${w.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</span>`) .join(" "); }); $$
+(".lang button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.l === L));
   document.title = t.ttl;
   $("meta[name=description]").content = t.mdesc;
   $("meta[property=\"og:title\"]").content = t.ttl;
@@ -72,21 +59,26 @@ function render() {
   ["#price", "#hprice", "#bprice"].forEach((s) => ($(s).textContent = pr));
   const n = count();
   $("#cnt").textContent = n;
-  $("#lines").innerHTML = n
-    ? Object.entries(cart)
-        .map(
-          ([v, q]) =>
-            `<div class="li">${t.pd}${HEX[v] ? `<small>${t[v === "blue" ? "cb" : "cp"]}</small>` : ""}<small>× ${q}${CONFIG.price ? " · " + money(CONFIG.price * q) : ""}</small><button class="btn" data-rm="${v}">${t.rm}</button></div>`,
-        )
-        .join("")
-    : `<p>${t.emp}</p>`;
+  
+  // Trecho reorganizado para evitar conflito de crases no editor
+  if (n) {
+    let linesHtml = "";
+    for (const [v, q] of Object.entries(cart)) {
+      const colorLabel = HEX[v] ? `<small>${t[v === "blue" ? "cb" : "cp"]}</small>` : "";
+      const pricePart = CONFIG.price ? ` · ${money(CONFIG.price * q)}` : "";
+      linesHtml += `<div class="li">${t.pd}${colorLabel}<small>× ${q}${pricePart}</small><button class="btn" data-rm="${v}">${t.rm}</button></div>`;
+    }
+    $("#lines").innerHTML = linesHtml;
+  } else {
+    $("#lines").innerHTML = `<p>${t.emp}</p>`;
+  }
+
   $("#sub").textContent = n && CONFIG.price ? `${t.sub}: ${money(CONFIG.price * n)}` : "";
   $("#co").disabled = !n;
   $("#cab").hidden = !CONFIG.CABLE_IN_BOX_CONFIRMED;
   $("#fc").hidden = !CONFIG.COLOR_OPTIONS_CONFIRMED;
   $("#fin").hidden = !CONFIG.COLOR_OPTIONS_CONFIRMED;
-  $("#sw").hidden = !CONFIG.COLOR_OPTIONS_CONFIRMED;
-  $$("[data-c]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.c === color));
+  $("#sw").hidden = !CONFIG.COLOR_OPTIONS_CONFIRMED; $$("[data-c]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.c === color));
   panel();
   if (typeof placeTab === "function" && tabs.length) placeTab();
   heroFit();
@@ -101,12 +93,8 @@ function noGL() {
   const at = secs.findIndex((s) => s.getBoundingClientRect().bottom > innerHeight * 0.5);
   document.body.classList.add("nogl");
   /* sem 3D o texto fica parado e visivel: tira a opacidade e o deslocamento que a rolagem tinha posto */
-  $$(".tx").forEach((t) => t.removeAttribute("style"));
-  const to = at > 0 && secs.slice(at).find((s) => s.offsetParent);
-  if (to) to.scrollIntoView();
-}
-/* ---- enquadramento do aparelho no hero (usado pelo 3D e pelo poster que aparece antes dele) ---- */
-const secs = $$(".sc"),
+  $$(".tx").forEach((t) => t.removeAttribute("style")); const to = at > 0 && secs.slice(at).find((s) => s.offsetParent); if (to) to.scrollIntoView(); } /* ---- enquadramento do aparelho no hero (usado pelo 3D e pelo poster que aparece antes dele) ---- */ const secs = $$
+(".sc"),
   c01 = (v) => Math.min(1, Math.max(0, v)),
   isMob = () => innerWidth <= 820 && innerHeight >= 520;
 /* celular: o aparelho (e sombra) cabe entre o menu e o bloco de texto da secao i, qualquer que seja a altura da tela
@@ -195,10 +183,7 @@ const drawer = (o) => {
   $("#ov").classList.toggle("on", o);
   if (o) {
     opener = document.activeElement;
-    $("#dx").focus({ preventScroll: true });
-  } else if (opener) opener.focus({ preventScroll: true });
-};
-$$(".lang button").forEach(
+    $("#dx").focus({ preventScroll: true }); } else if (opener) opener.focus({ preventScroll: true }); }; $$(".lang button").forEach(
   (b) =>
     (b.onclick = () => {
       L = b.dataset.l;
@@ -233,12 +218,7 @@ function barUpdate() {
     buyOn = r.top < innerHeight * 0.85 && r.bottom > innerHeight * 0.15;
   document.body.classList.toggle("hasbar", scrollY > innerHeight * 0.6 && !buyOn && !$("#dr").classList.contains("on"));
   /* arco do horizonte: curvo quando as informacoes entram por baixo, quase reto quando chegam ao topo */
-  $("#details").style.setProperty("--arc", RM ? 1 : 0.15 + 0.85 * c01($("#details").getBoundingClientRect().top / innerHeight));
-}
-addEventListener("scroll", barUpdate, { passive: true });
-addEventListener("resize", barUpdate);
-/* links do rodape: usa a URL de CONFIG.policies; sem URL, abre a aba (envio/devolucoes/contato) ou avisa */
-$$("[data-policy]").forEach(
+  $("#details").style.setProperty("--arc", RM ? 1 : 0.15 + 0.85 * c01($("#details").getBoundingClientRect().top / innerHeight)); } addEventListener("scroll", barUpdate, { passive: true }); addEventListener("resize", barUpdate); /* links do rodape: usa a URL de CONFIG.policies; sem URL, abre a aba (envio/devolucoes/contato) ou avisa */ $$("[data-policy]").forEach(
   (a) =>
     (a.onclick = (e) => {
       const k = a.dataset.policy,
@@ -258,32 +238,14 @@ $("#co").onclick = () => {
     else say(T[L].noco);
   }
 };
-$$("[data-go]").forEach(
-  (a) =>
-    (a.onclick = (e) => {
-      e.preventDefault();
-      document.getElementById(a.dataset.go).scrollIntoView({ behavior: RM ? "auto" : "smooth" });
-    }),
-);
-$$("#brand, [data-brand]").forEach((e) => (e.textContent = CONFIG.brand));
+$$("[data-go]").forEach( (a) => (a.onclick = (e) => { e.preventDefault(); document.getElementById(a.dataset.go).scrollIntoView({ behavior: RM ? "auto" : "smooth" }); }), ); $$
+("#brand, [data-brand]").forEach((e) => (e.textContent = CONFIG.brand));
 /* logo do menu: volta ao inicio da pagina (convencao de qualquer loja) */
 $("#brand").onclick = (e) => {
   e.preventDefault();
   scrollTo({ top: 0, behavior: RM ? "auto" : "smooth" });
 };
-$("#px").onclick = () => {
-  sel = null;
-  panel();
-};
-addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    sel = null;
-    panel();
-    drawer(false);
-  }
-});
-barUpdate();
-$$("[data-k]").forEach((b) => {
+$("#px").onclick = () => { sel = null; panel(); }; addEventListener("keydown", (e) => { if (e.key === "Escape") { sel = null; panel(); drawer(false); } }); barUpdate(); $$("[data-k]").forEach((b) => {
   const k = b.dataset.k;
   b.addEventListener("click", () => {
     sel = k;
@@ -332,28 +294,8 @@ $("#try").onclick = () => {
   tapFired = false;
   if (RM) fire();
 };
-$$("[data-c]").forEach(
-  (b) =>
-    (b.onclick = () => {
-      color = b.dataset.c;
-      colorT = HEX[color];
-      render();
-    }),
-);
-/* ---- secoes depois da compra: revelar ao rolar, contador, perguntas, abas ---- */
-document.documentElement.classList.add("js");
-const countUp = (root) =>
-  root.querySelectorAll("[data-count]").forEach((el) => {
-    const end = +el.dataset.count,
-      t0 = performance.now();
-    (function step(n) {
-      const k = Math.min(1, (n - t0) / 1100);
-      el.textContent = Math.round(end * (1 - Math.pow(1 - k, 3)));
-      if (k < 1) requestAnimationFrame(step);
-    })(t0);
-  });
-if ("IntersectionObserver" in window && !RM) {
-  $$("[data-count]").forEach((el) => (el.textContent = "0"));
+$$("[data-c]").forEach( (b) => (b.onclick = () => { color = b.dataset.c; colorT = HEX[color]; render(); }), ); /* ---- secoes depois da compra: revelar ao rolar, contador, perguntas, abas ---- */ document.documentElement.classList.add("js"); const countUp = (root) => root.querySelectorAll("[data-count]").forEach((el) => { const end = +el.dataset.count, t0 = performance.now(); (function step(n) { const k = Math.min(1, (n - t0) / 1100); el.textContent = Math.round(end * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); })(t0); }); if ("IntersectionObserver" in window && !RM) { $$
+("[data-count]").forEach((el) => (el.textContent = "0"));
   const io = new IntersectionObserver(
     (es) =>
       es.forEach((e) => {
@@ -364,20 +306,10 @@ if ("IntersectionObserver" in window && !RM) {
       }),
     { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
   );
-  $$(".rv").forEach((el) => io.observe(el));
-} else $$(".rv").forEach((el) => el.classList.add("in"));
-$$(".ai").forEach((it, i) => {
-  const b = it.querySelector(".aq"),
-    p = it.querySelector(".ap"),
-    set = (o) => {
-      it.classList.toggle("open", o);
-      b.setAttribute("aria-expanded", o);
-      p.inert = !o;
-    };
-  set(i === 0);
-  b.onclick = () => set(!it.classList.contains("open"));
-});
-const tabs = $$("#tabs [role=tab]");
+  $$(".rv").forEach((el) => io.observe(el)); } else $$
+(".rv").forEach((el) => el.classList.add("in"));
+$$(".ai").forEach((it, i) => { const b = it.querySelector(".aq"), p = it.querySelector(".ap"), set = (o) => { it.classList.toggle("open", o); b.setAttribute("aria-expanded", o); p.inert = !o; }; set(i === 0); b.onclick = () => set(!it.classList.contains("open")); }); const tabs = $$
+("#tabs [role=tab]");
 let curTab = "shipping";
 function placeTab() {
   const b = tabs.find((x) => x.dataset.tab === curTab);
@@ -405,13 +337,7 @@ tabs.forEach((b, i) => {
 });
 addEventListener("resize", placeTab);
 /* botao "Reduzir movimento" do rodape: vale por cima da preferencia do sistema e fica salvo */
-$("#mt").onclick = () => {
-  RM = !RM;
-  document.documentElement.classList.toggle("rm", RM);
-  try {
-    localStorage.setItem("motion", RM ? "reduce" : "full");
-  } catch (e) {}
-  $$(".rv").forEach((el) => el.classList.add("in"));
+$("#mt").onclick = () => { RM = !RM; document.documentElement.classList.toggle("rm", RM); try { localStorage.setItem("motion", RM ? "reduce" : "full"); } catch (e) {} $$(".rv").forEach((el) => el.classList.add("in"));
   render();
   if (!document.body.classList.contains("nogl")) fadeText();
   barUpdate();
@@ -460,12 +386,3 @@ const start3D = () => {
     .catch(() => loadScript(CONFIG.threeCdn))
     .then(() => (loadP(0.4), loadScript(CONFIG.gltfLocal).catch(() => loadScript(CONFIG.gltfCdn))))
     .then(loadGLB)
-    .then(init3D, noGL);
-};
-/* o 3D (~2 MB) so comeca depois que a pagina terminou de carregar; com economia de dados nem comeca (Safari nao tem esse sinal) */
-if (navigator.connection && navigator.connection.saveData) noGL();
-else {
-  const go = () => (window.requestIdleCallback ? requestIdleCallback(start3D, { timeout: 1500 }) : setTimeout(start3D, 200));
-  if (document.readyState === "complete") go();
-  else addEventListener("load", go);
-}
