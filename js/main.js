@@ -1,388 +1,941 @@
 /* VELURA - main.js
+
    Idioma, carrinho, painel de pecas, botao "segure para explorar" e carregamento do 3D. */
-const $= (s) => document.querySelector(s),$$ = (s) => [...document.querySelectorAll(s)];
+
+const $ = (s) => document.querySelector(s),
+
+  $$ = (s) => [...document.querySelectorAll(s)];
+
 /* movimento reduzido: vem do sistema ou do botao do rodape (a classe "rm" e posta no <head>, antes da pintura) */
+
 let RM = document.documentElement.classList.contains("rm");
+
 const REM = CONFIG.REMOVABLE_HEADS_CONFIRMED;
+
 let L = "en";
+
 try {
+
   L = localStorage.getItem("lang") || "en";
+
 } catch (e) {}
+
 if (!T[L]) L = "en";
+
 const HEX = { pink: 0xe39a96, blue: 0xa9c7e0 };
+
 let qty = 1,
+
   cart = {}, // { variante: quantidade }, variante = cor (ou "std" sem opcoes de cor)
+
   color = "pink",
+
   sel = null,
+
   hov = null,
+
   holding = false,
+
   press = 0,
+
   shot = false,
+
   tapT0 = -1e9, // inicio do ciclo do dedo (secao "Switch on"); ver product3d.js
+
   tapFired = false,
+
   colorT = HEX.pink;
+
 try {
+
   const c = JSON.parse(localStorage.getItem("cart"));
+
   if (c && typeof c === "object") cart = c;
+
 } catch (e) {}
+
 const count = () => Object.values(cart).reduce((a, b) => a + b, 0);
+
 const toast = $("#toast");
+
 let tt;
+
 const say = (m) => {
+
   toast.textContent = m;
+
   toast.classList.add("on");
+
   clearTimeout(tt);
+
   tt = setTimeout(() => toast.classList.remove("on"), 3200);
+
 };
+
 const money = (n) =>
+
   new Intl.NumberFormat(L === "pt" ? "pt-BR" : L === "es" ? "es-US" : "en-US", {
+
     style: "currency",
+
     currency: CONFIG.currency,
+
   }).format(n);
+
 const NUM = { foil: 1, round: 2, body: 3, btn: 4, led: 5, port: 6 };
+
 function panel() {
+
   const p = $("#pn");
+
   if (!sel) {
+
     p.classList.remove("on");
+
     return;
-  }
-  $("#pt").textContent = T[L]["ix" + NUM[sel]];
-  $("#pb").textContent = T[L]["pl" + NUM[sel]]; p.classList.add("on"); } function render() { const t = T[L]; document.documentElement.lang = { en: "en-US", pt: "pt-BR", es: "es" }[L]; $$("[data-t]").forEach((e) => (e.textContent = t[e.dataset.t]));
-  /* paragrafos das secoes fixas: uma palavra por <span>, que acende com a rolagem (--lw em fadeText, opacidade no CSS) */
-  $$(".sc:not(:first-child):not(.buyx) .tx > p[data-t]").forEach((p) => { const ws = p.textContent.split(" "); p.style.setProperty("--n", ws.length); p.innerHTML = ws .map((w, j) => `<span class="w" style="--j:${j}">${w.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</span>`) .join(" "); }); $$
-(".lang button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.l === L));
-  document.title = t.ttl;
-  $("meta[name=description]").content = t.mdesc;
-  $("meta[property=\"og:title\"]").content = t.ttl;
-  $("meta[property=\"og:description\"]").content = t.mdesc;
-  const pr = CONFIG.price ? money(CONFIG.price) : t.price;
-  ["#price", "#hprice", "#bprice"].forEach((s) => ($(s).textContent = pr));
-  const n = count();
-  $("#cnt").textContent = n;
-  
-  // Trecho reorganizado para evitar conflito de crases no editor
-  if (n) {
-    let linesHtml = "";
-    for (const [v, q] of Object.entries(cart)) {
-      const colorLabel = HEX[v] ? `<small>${t[v === "blue" ? "cb" : "cp"]}</small>` : "";
-      const pricePart = CONFIG.price ? ` · ${money(CONFIG.price * q)}` : "";
-      linesHtml += `<div class="li">${t.pd}${colorLabel}<small>× ${q}${pricePart}</small><button class="btn" data-rm="${v}">${t.rm}</button></div>`;
-    }
-    $("#lines").innerHTML = linesHtml;
-  } else {
-    $("#lines").innerHTML = `<p>${t.emp}</p>`;
+
   }
 
+  $("#pt").textContent = T[L]["ix" + NUM[sel]];
+
+  $("#pb").textContent = T[L]["pl" + NUM[sel]];
+
+  p.classList.add("on");
+
+}
+
+function render() {
+
+  const t = T[L];
+
+  document.documentElement.lang = { en: "en-US", pt: "pt-BR", es: "es" }[L];
+
+  $$("[data-t]").forEach((e) => (e.textContent = t[e.dataset.t]));
+
+  /* paragrafos das secoes fixas: uma palavra por <span>, que acende com a rolagem (--lw em fadeText, opacidade no CSS) */
+
+  $$(".sc:not(:first-child):not(.buyx) .tx > p[data-t]").forEach((p) => {
+
+    const ws = p.textContent.split(" ");
+
+    p.style.setProperty("--n", ws.length);
+
+    p.innerHTML = ws
+
+      .map((w, j) => `<span class="w" style="--j:${j}">${w.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</span>`)
+
+      .join(" ");
+
+  });
+
+  $$(".lang button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.l === L));
+
+  document.title = t.ttl;
+
+  $("meta[name=description]").content = t.mdesc;
+
+  $("meta[property=\"og:title\"]").content = t.ttl;
+
+  $("meta[property=\"og:description\"]").content = t.mdesc;
+
+  const pr = CONFIG.price ? money(CONFIG.price) : t.price;
+
+  ["#price", "#hprice", "#bprice"].forEach((s) => ($(s).textContent = pr));
+
+  const n = count();
+
+  $("#cnt").textContent = n;
+
+  $("#lines").innerHTML = n
+
+    ? Object.entries(cart)
+
+        .map(
+
+          ([v, q]) =>
+
+            `<div class="li">${t.pd}${HEX[v] ? `<small>${t[v === "blue" ? "cb" : "cp"]}</small>` : ""}<small>× ${q}${CONFIG.price ? " · " + money(CONFIG.price * q) : ""}</small><button class="btn" data-rm="${v}">${t.rm}</button></div>`,
+
+        )
+
+        .join("")
+
+    : `<p>${t.emp}</p>`;
+
   $("#sub").textContent = n && CONFIG.price ? `${t.sub}: ${money(CONFIG.price * n)}` : "";
+
   $("#co").disabled = !n;
+
   $("#cab").hidden = !CONFIG.CABLE_IN_BOX_CONFIRMED;
+
   $("#fc").hidden = !CONFIG.COLOR_OPTIONS_CONFIRMED;
+
   $("#fin").hidden = !CONFIG.COLOR_OPTIONS_CONFIRMED;
-  $("#sw").hidden = !CONFIG.COLOR_OPTIONS_CONFIRMED; $$("[data-c]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.c === color));
+
+  $("#sw").hidden = !CONFIG.COLOR_OPTIONS_CONFIRMED;
+
+  $$("[data-c]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.c === color));
+
   panel();
+
   if (typeof placeTab === "function" && tabs.length) placeTab();
+
   heroFit();
+
   if (window.relayout) relayout();
+
   $("#poster").alt = t.palt;
+
   $("#mt").setAttribute("aria-pressed", RM);
+
 }
+
 /* modo sem 3D: pagina de texto + poster. Se o 3D cair no meio da visita (contexto WebGL perdido),
+
    a pagina muda de altura: volta para a mesma secao (ou a proxima, se ela nao existe sem 3D). */
+
 function noGL() {
+
   if (document.body.classList.contains("nogl")) return;
+
   const at = secs.findIndex((s) => s.getBoundingClientRect().bottom > innerHeight * 0.5);
+
   document.body.classList.add("nogl");
+
   /* sem 3D o texto fica parado e visivel: tira a opacidade e o deslocamento que a rolagem tinha posto */
-  $$(".tx").forEach((t) => t.removeAttribute("style")); const to = at > 0 && secs.slice(at).find((s) => s.offsetParent); if (to) to.scrollIntoView(); } /* ---- enquadramento do aparelho no hero (usado pelo 3D e pelo poster que aparece antes dele) ---- */ const secs = $$
-(".sc"),
+
+  $$(".tx").forEach((t) => t.removeAttribute("style"));
+
+  const to = at > 0 && secs.slice(at).find((s) => s.offsetParent);
+
+  if (to) to.scrollIntoView();
+
+}
+
+/* ---- enquadramento do aparelho no hero (usado pelo 3D e pelo poster que aparece antes dele) ---- */
+
+const secs = $$(".sc"),
+
   c01 = (v) => Math.min(1, Math.max(0, v)),
+
   isMob = () => innerWidth <= 820 && innerHeight >= 520;
+
 /* celular: o aparelho (e sombra) cabe entre o menu e o bloco de texto da secao i, qualquer que seja a altura da tela
+
    (no Safari do iPhone a altura util vai de ~550 a ~750 px por causa das barras). Altura do aparelho em px = 0,597 * H * s;
+
    centro na tela = 0,37 * H - (y - 0,18 * s) * H / 5,359 (camera a 10 un., fov 30, deslocamento de 13% da janela). */
+
 function fitMob(i) {
+
   const H = innerHeight,
+
     rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16,
+
     tx = secs[i].querySelector(".tx"),
+
     probe = document.createElement("div");
+
   probe.style.cssText = "position:fixed;visibility:hidden;padding-bottom:env(safe-area-inset-bottom,0px)";
+
   document.body.appendChild(probe);
+
   const sb = parseFloat(getComputedStyle(probe).paddingBottom) || 0; /* area segura inferior (indicador home do iPhone) */
+
   probe.remove();
+
   const top = $(".nav").getBoundingClientRect().bottom + 6,
+
     bot = H - (1.6 + (i ? 4.8 : 0)) * rem - sb - tx.offsetHeight - 14,
+
     s = Math.max(0.3, Math.min(0.8, (bot - top) / (0.597 * H))),
+
     c = (top + bot) / 2;
+
   if (i === 0) {
+
     /* a moldura em arco do hero ocupa o mesmo espaco livre */
+
     document.documentElement.style.setProperty("--arch-top", c + "px");
+
     document.documentElement.style.setProperty("--arch-h", Math.max(120, bot - top + 24) + "px");
+
   }
+
   return { s, y: ((0.37 * H - c) * 5.359) / H + 0.18 * s };
+
 }
+
 /* poster (img/poster.webp): recorte quadrado do proprio 3D no estado do hero (desktop), de y = -2,25 a 1,55 em unidades
+
    da cena (3,8 un. de lado com a sombra, centro 0,17 un. abaixo do centro do aparelho). Aqui ele ganha o mesmo tamanho
+
    e lugar do 3D. Ao refazer o poster, manter esse recorte (ou mudar os numeros abaixo junto). */
+
 function heroFit() {
+
   const H = innerHeight,
+
     mob = isMob(),
+
     m = mob ? fitMob(0) : { s: 1, y: 0 },
+
     u = (m.s * H) / 5.359,
+
     c = (mob ? 0.37 : 0.5) * H - ((m.y - 0.18 * m.s) * H) / 5.359;
+
   document.documentElement.style.setProperty("--pz", 3.8 * u + "px");
+
   document.documentElement.style.setProperty("--py", c + 0.17 * u + "px");
+
 }
+
 /* opacidade do texto de cada secao fixa (e o quanto ele sobe ao entrar e sair). Roda sozinha enquanto o 3D carrega;
+
    depois o 3D chama a cada quadro. */
+
 const op = [0, 0, 0, 0, 0, 1];
+
 function fadeText() {
+
   secs.forEach((el, i) => {
+
     if (i === 5) return;
+
     const r = el.getBoundingClientRect(),
+
       p = -r.top / Math.max(1, r.height - innerHeight);
+
     op[i] = c01(Math.min(i ? p / 0.1 : 1, (1 - p) / 0.1));
+
     const t = el.querySelector(".tx");
+
     t.style.opacity = op[i];
+
     t.style.visibility = op[i] > 0.02 ? "visible" : "hidden";
+
     t.style.setProperty("--o", RM ? 0 : (p < 0.5 ? 1 : -1) * (1 - op[i]));
+
     /* palavras acendem do inicio da secao ate ~30% dela e ficam acesas ate o fim */
+
     if (i) t.style.setProperty("--lw", RM || p >= 0.5 ? 1 : c01((p - 0.02) / 0.28));
+
   });
+
   $("#arch").style.opacity = op[0] * 0.9;
+
   $("#fin").style.opacity = op[0];
+
   $("#fin").style.visibility = op[0] > 0.02 ? "visible" : "hidden";
+
 }
+
 $("#lines").addEventListener("click", (e) => {
+
   const b = e.target.closest("[data-rm]");
+
   if (!b) return;
+
   delete cart[b.dataset.rm];
+
   save();
+
 });
+
 /* Shopify: monta o link do carrinho com as variantes; senao usa checkoutUrl */
+
 function checkoutHref() {
+
   const s = CONFIG.shopify;
+
   if (s && s.domain) {
+
     const items = Object.entries(cart).map(([v, q]) => s.variants[v] && `${s.variants[v]}:${q}`);
+
     if (items.every(Boolean)) return `https://${s.domain}/cart/${items.join(",")}`;
+
   }
+
   return CONFIG.checkoutUrl;
+
 }
+
 function save() {
+
   try {
+
     localStorage.setItem("cart", JSON.stringify(cart));
+
   } catch (e) {}
+
   render();
+
 }
+
 let opener = null;
+
 const drawer = (o) => {
+
   const d = $("#dr");
+
   if (o === d.classList.contains("on")) return;
+
   d.classList.toggle("on", o);
+
   d.inert = !o;
+
   barUpdate();
+
   $("#ov").classList.toggle("on", o);
+
   if (o) {
+
     opener = document.activeElement;
-    $("#dx").focus({ preventScroll: true }); } else if (opener) opener.focus({ preventScroll: true }); }; $$(".lang button").forEach(
+
+    $("#dx").focus({ preventScroll: true });
+
+  } else if (opener) opener.focus({ preventScroll: true });
+
+};
+
+$$(".lang button").forEach(
+
   (b) =>
+
     (b.onclick = () => {
+
       L = b.dataset.l;
+
       try {
+
         localStorage.setItem("lang", L);
+
       } catch (e) {}
+
       render();
+
     }),
+
 );
+
 $("#bag").onclick = () => drawer(true);
+
 $("#dx").onclick = $("#ov").onclick = () => drawer(false);
+
 $("#qm").onclick = () => {
+
   qty = Math.max(1, qty - 1);
+
   $("#qv").textContent = qty;
+
 };
+
 $("#qp").onclick = () => {
+
   qty = Math.min(10, qty + 1);
+
   $("#qv").textContent = qty;
+
 };
+
 /* compra: usada pelo botao do hero, da area de compra e da barra fixa do celular */
+
 const addToBag = () => {
+
   const v = CONFIG.COLOR_OPTIONS_CONFIRMED ? color : "std";
+
   cart[v] = Math.min(99, (cart[v] || 0) + qty);
+
   save();
+
   say(T[L].added);
+
   drawer(true);
+
 };
+
 ["#add", "#hadd", "#badd"].forEach((s) => ($(s).onclick = addToBag));
+
 /* barra de compra fixa (so no celular, ver CSS): aparece depois do hero e some enquanto o bloco de compra esta na tela */
+
 function barUpdate() {
+
   const r = $("#buy").getBoundingClientRect(),
+
     buyOn = r.top < innerHeight * 0.85 && r.bottom > innerHeight * 0.15;
+
   document.body.classList.toggle("hasbar", scrollY > innerHeight * 0.6 && !buyOn && !$("#dr").classList.contains("on"));
+
   /* arco do horizonte: curvo quando as informacoes entram por baixo, quase reto quando chegam ao topo */
-  $("#details").style.setProperty("--arc", RM ? 1 : 0.15 + 0.85 * c01($("#details").getBoundingClientRect().top / innerHeight)); } addEventListener("scroll", barUpdate, { passive: true }); addEventListener("resize", barUpdate); /* links do rodape: usa a URL de CONFIG.policies; sem URL, abre a aba (envio/devolucoes/contato) ou avisa */ $$("[data-policy]").forEach(
+
+  $("#details").style.setProperty("--arc", RM ? 1 : 0.15 + 0.85 * c01($("#details").getBoundingClientRect().top / innerHeight));
+
+}
+
+addEventListener("scroll", barUpdate, { passive: true });
+
+addEventListener("resize", barUpdate);
+
+/* links do rodape: usa a URL de CONFIG.policies; sem URL, abre a aba (envio/devolucoes/contato) ou avisa */
+
+$$("[data-policy]").forEach(
+
   (a) =>
+
     (a.onclick = (e) => {
+
       const k = a.dataset.policy,
+
         u = CONFIG.policies[k];
+
       e.preventDefault();
+
       if (u) location.href = u;
+
       else if (tabs.some((b) => b.dataset.tab === k)) {
+
         pickTab(k);
+
         $("#support").scrollIntoView({ behavior: RM ? "auto" : "smooth" });
+
       } else say(T[L].soon);
+
     }),
+
 );
+
 $("#co").onclick = () => {
+
   if (count()) {
+
     const u = checkoutHref();
+
     if (u) location.href = u;
+
     else say(T[L].noco);
+
   }
+
 };
-$$("[data-go]").forEach( (a) => (a.onclick = (e) => { e.preventDefault(); document.getElementById(a.dataset.go).scrollIntoView({ behavior: RM ? "auto" : "smooth" }); }), ); $$
-("#brand, [data-brand]").forEach((e) => (e.textContent = CONFIG.brand));
-/* logo do menu: volta ao inicio da pagina (convencao de qualquer loja) */
-$("#brand").onclick = (e) => {
-  e.preventDefault();
-  scrollTo({ top: 0, behavior: RM ? "auto" : "smooth" });
-};
-$("#px").onclick = () => { sel = null; panel(); }; addEventListener("keydown", (e) => { if (e.key === "Escape") { sel = null; panel(); drawer(false); } }); barUpdate(); $$("[data-k]").forEach((b) => {
-  const k = b.dataset.k;
-  b.addEventListener("click", () => {
-    sel = k;
-    panel();
-  });
-  b.addEventListener("pointerenter", (e) => {
-    if (e.pointerType === "mouse") hov = k; // no toque nao existe "passar por cima"; ficaria preso
-  });
-  b.addEventListener("pointerleave", () => (hov = null));
-  b.addEventListener("focus", () => (hov = k));
-  b.addEventListener("blur", () => (hov = null));
-});
-const hb = $("#hold"),
-  hset = (v) => {
-    holding = v;
-    hb.classList.toggle("on", v);
-    $("#hsw").classList.toggle("lab", v);
-  };
-hb.addEventListener("pointerdown", (e) => {
-  e.preventDefault();
-  hb.setPointerCapture(e.pointerId);
-  hset(true);
-});
-["pointerup", "pointercancel", "lostpointercapture"].forEach((n) =>
-  hb.addEventListener(n, () => hset(false)),
+
+$$("[data-go]").forEach(
+
+  (a) =>
+
+    (a.onclick = (e) => {
+
+      e.preventDefault();
+
+      document.getElementById(a.dataset.go).scrollIntoView({ behavior: RM ? "auto" : "smooth" });
+
+    }),
+
 );
-hb.addEventListener("keydown", (e) => {
-  if ((e.key === " " || e.key === "Enter") && !e.repeat) {
-    e.preventDefault();
-    hset(true);
+
+$$("#brand, [data-brand]").forEach((e) => (e.textContent = CONFIG.brand));
+
+/* logo do menu: volta ao inicio da pagina (convencao de qualquer loja) */
+
+$("#brand").onclick = (e) => {
+
+  e.preventDefault();
+
+  scrollTo({ top: 0, behavior: RM ? "auto" : "smooth" });
+
+};
+
+$("#px").onclick = () => {
+
+  sel = null;
+
+  panel();
+
+};
+
+addEventListener("keydown", (e) => {
+
+  if (e.key === "Escape") {
+
+    sel = null;
+
+    panel();
+
+    drawer(false);
+
   }
+
 });
-hb.addEventListener("keyup", (e) => {
-  if (e.key === " " || e.key === "Enter") hset(false);
-});
-hb.addEventListener("blur", () => hset(false));
-const rp = $("#rp");
-function fire() {
-  press = 1;
-  rp.classList.remove("go");
-  void rp.offsetWidth;
-  rp.classList.add("go");
-}
-$("#try").onclick = () => {
-  tapT0 = performance.now(); // reinicia o dedo; o toque (fire) acontece no meio do ciclo
-  tapFired = false;
-  if (RM) fire();
-};
-$$("[data-c]").forEach( (b) => (b.onclick = () => { color = b.dataset.c; colorT = HEX[color]; render(); }), ); /* ---- secoes depois da compra: revelar ao rolar, contador, perguntas, abas ---- */ document.documentElement.classList.add("js"); const countUp = (root) => root.querySelectorAll("[data-count]").forEach((el) => { const end = +el.dataset.count, t0 = performance.now(); (function step(n) { const k = Math.min(1, (n - t0) / 1100); el.textContent = Math.round(end * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); })(t0); }); if ("IntersectionObserver" in window && !RM) { $$
-("[data-count]").forEach((el) => (el.textContent = "0"));
-  const io = new IntersectionObserver(
-    (es) =>
-      es.forEach((e) => {
-        if (!e.isIntersecting) return;
-        e.target.classList.add("in");
-        countUp(e.target);
-        io.unobserve(e.target);
-      }),
-    { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
-  );
-  $$(".rv").forEach((el) => io.observe(el)); } else $$
-(".rv").forEach((el) => el.classList.add("in"));
-$$(".ai").forEach((it, i) => { const b = it.querySelector(".aq"), p = it.querySelector(".ap"), set = (o) => { it.classList.toggle("open", o); b.setAttribute("aria-expanded", o); p.inert = !o; }; set(i === 0); b.onclick = () => set(!it.classList.contains("open")); }); const tabs = $$
-("#tabs [role=tab]");
-let curTab = "shipping";
-function placeTab() {
-  const b = tabs.find((x) => x.dataset.tab === curTab);
-  $("#ti").style.width = b.offsetWidth + "px";
-  $("#ti").style.transform = `translateX(${b.offsetLeft}px)`;
-}
-function pickTab(k, focus) {
-  curTab = k;
-  tabs.forEach((b) => {
-    const on = b.dataset.tab === k;
-    b.setAttribute("aria-selected", on);
-    b.tabIndex = on ? 0 : -1;
-    $("#p-" + b.dataset.tab).classList.toggle("on", on);
-    if (on && focus) b.focus();
+
+barUpdate();
+
+$$("[data-k]").forEach((b) => {
+
+  const k = b.dataset.k;
+
+  b.addEventListener("click", () => {
+
+    sel = k;
+
+    panel();
+
   });
-  placeTab();
-}
-tabs.forEach((b, i) => {
-  b.onclick = () => pickTab(b.dataset.tab);
-  b.onkeydown = (e) => {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    e.preventDefault();
-    pickTab(tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length].dataset.tab, true);
+
+  b.addEventListener("pointerenter", (e) => {
+
+    if (e.pointerType === "mouse") hov = k; // no toque nao existe "passar por cima"; ficaria preso
+
+  });
+
+  b.addEventListener("pointerleave", () => (hov = null));
+
+  b.addEventListener("focus", () => (hov = k));
+
+  b.addEventListener("blur", () => (hov = null));
+
+});
+
+const hb = $("#hold"),
+
+  hset = (v) => {
+
+    holding = v;
+
+    hb.classList.toggle("on", v);
+
+    $("#hsw").classList.toggle("lab", v);
+
   };
+
+hb.addEventListener("pointerdown", (e) => {
+
+  e.preventDefault();
+
+  hb.setPointerCapture(e.pointerId);
+
+  hset(true);
+
 });
-addEventListener("resize", placeTab);
-/* botao "Reduzir movimento" do rodape: vale por cima da preferencia do sistema e fica salvo */
-$("#mt").onclick = () => { RM = !RM; document.documentElement.classList.toggle("rm", RM); try { localStorage.setItem("motion", RM ? "reduce" : "full"); } catch (e) {} $$(".rv").forEach((el) => el.classList.add("in"));
-  render();
-  if (!document.body.classList.contains("nogl")) fadeText();
-  barUpdate();
-};
-render();
-/* enquanto o 3D carrega: texto das secoes acompanha a rolagem e o poster aparece quando decodificado */
-const pre = () => !document.body.classList.contains("gl") && !document.body.classList.contains("nogl") && fadeText();
-addEventListener("scroll", pre, { passive: true });
-addEventListener("resize", () => {
-  heroFit();
-  pre();
+
+["pointerup", "pointercancel", "lostpointercapture"].forEach((n) =>
+
+  hb.addEventListener(n, () => hset(false)),
+
+);
+
+hb.addEventListener("keydown", (e) => {
+
+  if ((e.key === " " || e.key === "Enter") && !e.repeat) {
+
+    e.preventDefault();
+
+    hset(true);
+
+  }
+
 });
-/* a altura do texto do hero muda quando as fontes chegam (fonts.ready pode resolver antes de elas comecarem a baixar) */
-if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => heroFit());
-addEventListener("load", () => heroFit());
-fadeText();
-const poster = $("#poster"),
-  showPoster = () => poster.classList.add("in");
-if (poster.complete && poster.naturalWidth) showPoster();
-else poster.addEventListener("load", showPoster);
-/* progresso do download do 3D desenha a moldura em arco de baixo para cima */
-const loadP = (v) => document.documentElement.style.setProperty("--lp", v);
-/* Three.js + GLTFLoader + modelo: tenta a copia local; se falhar, o CDN; se algo falhar, a pagina segue sem 3D */
-function loadScript(src) {
-  return new Promise((ok, fail) => {
-    const s = document.createElement("script");
-    s.src = src;
-    s.onload = ok;
-    s.onerror = fail;
-    document.head.appendChild(s);
-  });
+
+hb.addEventListener("keyup", (e) => {
+
+  if (e.key === " " || e.key === "Enter") hset(false);
+
+});
+
+hb.addEventListener("blur", () => hset(false));
+
+const rp = $("#rp");
+
+function fire() {
+
+  press = 1;
+
+  rp.classList.remove("go");
+
+  void rp.offsetWidth;
+
+  rp.classList.add("go");
+
 }
-const loadGLB = () =>
-  new Promise((ok, fail) =>
-    new THREE.GLTFLoader().load(
-      CONFIG.model,
-      ok,
-      /* sem Content-Length (alguns servidores com gzip), usa o tamanho aproximado do GLB (~1,4 MB) */
-      (e) => loadP(0.45 + 0.5 * Math.min(1, e.loaded / (e.total || 1.4e6))),
-      fail,
-    ),
+
+$("#try").onclick = () => {
+
+  tapT0 = performance.now(); // reinicia o dedo; o toque (fire) acontece no meio do ciclo
+
+  tapFired = false;
+
+  if (RM) fire();
+
+};
+
+$$("[data-c]").forEach(
+
+  (b) =>
+
+    (b.onclick = () => {
+
+      color = b.dataset.c;
+
+      colorT = HEX[color];
+
+      render();
+
+    }),
+
+);
+
+/* ---- secoes depois da compra: revelar ao rolar, contador, perguntas, abas ---- */
+
+document.documentElement.classList.add("js");
+
+const countUp = (root) =>
+
+  root.querySelectorAll("[data-count]").forEach((el) => {
+
+    const end = +el.dataset.count,
+
+      t0 = performance.now();
+
+    (function step(n) {
+
+      const k = Math.min(1, (n - t0) / 1100);
+
+      el.textContent = Math.round(end * (1 - Math.pow(1 - k, 3)));
+
+      if (k < 1) requestAnimationFrame(step);
+
+    })(t0);
+
+  });
+
+if ("IntersectionObserver" in window && !RM) {
+
+  $$("[data-count]").forEach((el) => (el.textContent = "0"));
+
+  const io = new IntersectionObserver(
+
+    (es) =>
+
+      es.forEach((e) => {
+
+        if (!e.isIntersecting) return;
+
+        e.target.classList.add("in");
+
+        countUp(e.target);
+
+        io.unobserve(e.target);
+
+      }),
+
+    { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
+
   );
+
+  $$(".rv").forEach((el) => io.observe(el));
+
+} else $$(".rv").forEach((el) => el.classList.add("in"));
+
+$$(".ai").forEach((it, i) => {
+
+  const b = it.querySelector(".aq"),
+
+    p = it.querySelector(".ap"),
+
+    set = (o) => {
+
+      it.classList.toggle("open", o);
+
+      b.setAttribute("aria-expanded", o);
+
+      p.inert = !o;
+
+    };
+
+  set(i === 0);
+
+  b.onclick = () => set(!it.classList.contains("open"));
+
+});
+
+const tabs = $$("#tabs [role=tab]");
+
+let curTab = "shipping";
+
+function placeTab() {
+
+  const b = tabs.find((x) => x.dataset.tab === curTab);
+
+  $("#ti").style.width = b.offsetWidth + "px";
+
+  $("#ti").style.transform = `translateX(${b.offsetLeft}px)`;
+
+}
+
+function pickTab(k, focus) {
+
+  curTab = k;
+
+  tabs.forEach((b) => {
+
+    const on = b.dataset.tab === k;
+
+    b.setAttribute("aria-selected", on);
+
+    b.tabIndex = on ? 0 : -1;
+
+    $("#p-" + b.dataset.tab).classList.toggle("on", on);
+
+    if (on && focus) b.focus();
+
+  });
+
+  placeTab();
+
+}
+
+tabs.forEach((b, i) => {
+
+  b.onclick = () => pickTab(b.dataset.tab);
+
+  b.onkeydown = (e) => {
+
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+
+    e.preventDefault();
+
+    pickTab(tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length].dataset.tab, true);
+
+  };
+
+});
+
+addEventListener("resize", placeTab);
+
+/* botao "Reduzir movimento" do rodape: vale por cima da preferencia do sistema e fica salvo */
+
+$("#mt").onclick = () => {
+
+  RM = !RM;
+
+  document.documentElement.classList.toggle("rm", RM);
+
+  try {
+
+    localStorage.setItem("motion", RM ? "reduce" : "full");
+
+  } catch (e) {}
+
+  $$(".rv").forEach((el) => el.classList.add("in"));
+
+  render();
+
+  if (!document.body.classList.contains("nogl")) fadeText();
+
+  barUpdate();
+
+};
+
+render();
+
+/* enquanto o 3D carrega: texto das secoes acompanha a rolagem e o poster aparece quando decodificado */
+
+const pre = () => !document.body.classList.contains("gl") && !document.body.classList.contains("nogl") && fadeText();
+
+addEventListener("scroll", pre, { passive: true });
+
+addEventListener("resize", () => {
+
+  heroFit();
+
+  pre();
+
+});
+
+/* a altura do texto do hero muda quando as fontes chegam (fonts.ready pode resolver antes de elas comecarem a baixar) */
+
+if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", () => heroFit());
+
+addEventListener("load", () => heroFit());
+
+fadeText();
+
+const poster = $("#poster"),
+
+  showPoster = () => poster.classList.add("in");
+
+if (poster.complete && poster.naturalWidth) showPoster();
+
+else poster.addEventListener("load", showPoster);
+
+/* progresso do download do 3D desenha a moldura em arco de baixo para cima */
+
+const loadP = (v) => document.documentElement.style.setProperty("--lp", v);
+
+/* Three.js + GLTFLoader + modelo: tenta a copia local; se falhar, o CDN; se algo falhar, a pagina segue sem 3D */
+
+function loadScript(src) {
+
+  return new Promise((ok, fail) => {
+
+    const s = document.createElement("script");
+
+    s.src = src;
+
+    s.onload = ok;
+
+    s.onerror = fail;
+
+    document.head.appendChild(s);
+
+  });
+
+}
+
+const loadGLB = () =>
+
+  new Promise((ok, fail) =>
+
+    new THREE.GLTFLoader().load(
+
+      CONFIG.model,
+
+      ok,
+
+      /* sem Content-Length (alguns servidores com gzip), usa o tamanho aproximado do GLB (~1,4 MB) */
+
+      (e) => loadP(0.45 + 0.5 * Math.min(1, e.loaded / (e.total || 1.4e6))),
+
+      fail,
+
+    ),
+
+  );
+
 const start3D = () => {
+
   loadP(0.12);
+
   return loadScript(CONFIG.threeLocal)
+
     .catch(() => loadScript(CONFIG.threeCdn))
+
     .then(() => (loadP(0.4), loadScript(CONFIG.gltfLocal).catch(() => loadScript(CONFIG.gltfCdn))))
+
     .then(loadGLB)
+
+    .then(init3D, noGL);
+
+};
+
+/* o 3D (~2 MB) so comeca depois que a pagina terminou de carregar; com economia de dados nem comeca (Safari nao tem esse sinal) */
+
+if (navigator.connection && navigator.connection.saveData) noGL();
+
+else {
+
+  const go = () => (window.requestIdleCallback ? requestIdleCallback(start3D, { timeout: 1500 }) : setTimeout(start3D, 200));
+
+  if (document.readyState === "complete") go();
+
+  else addEventListener("load", go);
+
+}
