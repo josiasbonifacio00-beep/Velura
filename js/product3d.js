@@ -16,12 +16,13 @@ function init3D(gltf) {
     C = new THREE.PerspectiveCamera(30, 1, 0.1, 60),
     pm = new THREE.PMREMGenerator(R),
     es = new THREE.Scene();
-  es.background = new THREE.Color(0x35302b);
+  /* estudio de luz quente, como nas fotos do fornecedor (parede areia, sol lateral) */
+  es.background = new THREE.Color(0x4a3a31);
   [
-    [0, 7, 2, 8, 0.2, 5, 0xffffff, 14],
-    [-7, 1, 3, 0.2, 6, 6, 0xffe6dc, 7],
-    [7, 0, -3, 0.2, 6, 6, 0xe9dcc4, 6],
-    [0, -5, 0, 8, 0.2, 8, 0xffffff, 2.5],
+    [0, 7, 2, 8, 0.2, 5, 0xfff3e6, 14],
+    [-7, 1, 3, 0.2, 6, 6, 0xffdcc4, 7],
+    [7, 0, -3, 0.2, 6, 6, 0xf2d4b6, 6],
+    [0, -5, 0, 8, 0.2, 8, 0xfbe6d2, 2.5],
   ].forEach((a) => {
     const m = new THREE.Mesh(
       new THREE.BoxGeometry(a[3], a[4], a[5]),
@@ -30,10 +31,66 @@ function init3D(gltf) {
     m.position.set(a[0], a[1], a[2]);
     es.add(m);
   });
+  /* o aparelho e iluminado pelo mapa de ambiente; o corredor so pelo foco (luz direcional deixava a parede chapada) */
   S.environment = pm.fromScene(es).texture;
-  const dl = new THREE.DirectionalLight(0xffffff, 0.6);
-  dl.position.set(3, 5, 6);
-  S.add(dl);
+  /* Corredor de arcos (ideia do Oryzo + alcovas do Cartier): paredes com abertura em arco a cada D unidades em -Z,
+     com contorno de luz rose. O corredor anda em Z conforme o capitulo (quadro-chave "ez"), entao a camera passa por
+     um arco a cada capitulo. Tudo gerado aqui (sem arquivos). Fundo e nevoa usam a cor do capitulo (cur.bg). */
+  S.background = new THREE.Color(0x17110e);
+  S.fog = new THREE.Fog(0x17110e, 13, 46);
+  S.add(new THREE.HemisphereLight(0xffd9c4, 0x0c0806, 0.1));
+  /* foco quente logo a frente do arco atual: uma poca de luz na parede e no piso em volta do aparelho, bordas no escuro
+     (a luz anda junto com o aparelho, nao com o corredor) */
+  const key = new THREE.PointLight(0xffc09c, 2.2, 11, 2);
+  key.position.set(0.4, 3.4, -0.6);
+  S.add(key);
+  /* D > distancia da camera (10) + 2,6: o arco do capitulo anterior ja fica atras da camera (senao a coluna dele
+     cortava a tela quando o aparelho esta deslocado para o lado) */
+  const D = 13,
+    env = new THREE.Group(),
+    corr = new THREE.Group(),
+    aw = 2.3, // meia-largura da abertura
+    ah = 3.2, // altura do trecho reto da abertura (a partir do piso)
+    fy = -1.86, // piso, logo abaixo da base do aparelho
+    /* luz calculada por pixel (Standard): com Lambert a parede tem triangulos enormes e o foco nao aparecia;
+       o mapa de ambiente do aparelho entra fraco aqui, para a luz vir do foco */
+    wallM = new THREE.MeshStandardMaterial({ color: 0x7a5646, roughness: 0.92, metalness: 0, envMapIntensity: 0.015 }),
+    glowM = new THREE.MeshBasicMaterial({ color: 0xf0b49a }),
+    floorM = new THREE.MeshStandardMaterial({ color: 0x3a2619, roughness: 0.55, metalness: 0, envMapIntensity: 0.02 });
+  env.add(corr, key);
+  S.add(env);
+  const wall = new THREE.Shape();
+  wall.moveTo(-40, fy).lineTo(40, fy).lineTo(40, 30).lineTo(-40, 30).lineTo(-40, fy);
+  const hole = new THREE.Path();
+  hole.moveTo(-aw, fy).lineTo(aw, fy).lineTo(aw, fy + ah).absarc(0, fy + ah, aw, 0, Math.PI, false).lineTo(-aw, fy);
+  wall.holes.push(hole);
+  const wallG = new THREE.ExtrudeGeometry(wall, { depth: 0.6, bevelEnabled: false, curveSegments: 40 }),
+    edge = new THREE.CurvePath();
+  edge.add(new THREE.LineCurve3(new THREE.Vector3(-aw, fy, 0), new THREE.Vector3(-aw, fy + ah, 0)));
+  edge.add(
+    new THREE.CatmullRomCurve3(
+      Array.from({ length: 25 }, (_, i) => {
+        const a = Math.PI - (i / 24) * Math.PI;
+        return new THREE.Vector3(Math.cos(a) * aw, fy + ah + Math.sin(a) * aw, 0);
+      }),
+    ),
+  );
+  edge.add(new THREE.LineCurve3(new THREE.Vector3(aw, fy + ah, 0), new THREE.Vector3(aw, fy, 0)));
+  const glowG = new THREE.TubeGeometry(edge, 120, 0.022, 6, false);
+  for (let k = 0; k < 8; k++) {
+    const g = new THREE.Group(),
+      w = new THREE.Mesh(wallG, wallM),
+      l = new THREE.Mesh(glowG, glowM);
+    w.position.z = -0.6; // a face da parede fica em z = 0 do arco
+    l.position.z = 0.02;
+    g.add(w, l);
+    g.position.z = -2.6 - k * D;
+    corr.add(g);
+  }
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 120), floorM);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, fy - 0.001, -50);
+  env.add(floor);
   /* Modelo: models/velura.glb (Blender). Estrutura: "DEPILADOR" (corpo, botao, visor, base, cabecote de lamina)
      e "CABECA CIRCULAR" solta ao lado. Aqui as pecas sao redistribuidas em grupos animaveis (ver G/parts).
      O GLB esta em metros, Y para cima, frente em +Z, 0 a 0,169 m de altura: SC/DY o levam para as unidades da cena
@@ -134,43 +191,44 @@ function init3D(gltf) {
   dot.position.set(0, 0.87, 0);
   M.add(dot);
   /* scenes: keyframes [start,end]; scroll interpolates between them, the same product travels throughout */
-  const IV = [246, 242, 234],
-    CH = [36, 35, 33],
-    CR = [237, 230, 218],
-    BL = [216, 182, 174];
+  /* fundo/nevoa de cada capitulo: tons de noite quente (cafe, umbra, pau-rosa) */
+  const NI = [23, 17, 14],
+    UM = [30, 21, 17],
+    RW = [38, 23, 21],
+    UM2 = [33, 24, 18];
   /* layout de celular em pe (isMob e fitMob ficam em main.js); celular deitado (altura < 520) usa o layout largo */
   let mob = isMob(),
     K;
   /* no celular o aparelho sobe e encolhe nas secoes com texto, para o texto ficar na metade de baixo */
   const kf = (o) =>
-    Object.assign({ x: 0, y: mob ? 0.45 : 0, s: mob ? 0.8 : 1, ry: -0.3, rx: 0, hm: 0, cz: 10, cy: 0.2, ty: 0, bg: IV }, o);
+    Object.assign({ x: 0, y: mob ? 0.45 : 0, s: mob ? 0.8 : 1, ry: -0.3, rx: 0, hm: 0, cz: 10, cy: 0.2, ty: 0, ez: 0, bg: NI }, o);
+  /* secoes .sc: 0 hero, 1 cabeca foil, 2 troca, 3 pecas (EX), 4 cuidados, 5 compra. Cada uma fica num arco do
+     corredor (ez = indice * D): entre uma secao e a seguinte a camera atravessa o arco. */
   function mkK() {
     mob = isMob();
-    /* compra: o aparelho fica no meio da metade esquerda; meia-largura visivel em z = 0 e 10 * tan(15 graus) * aspecto */
-    const w = mob ? 0 : -0.55 * 2.679 * (innerWidth / innerHeight),
-      cl = { y: 0, s: 1 },
-      m0 = mob ? fitMob(0) : {},
-      m1 = mob ? fitMob(1) : {},
-      m2 = mob ? fitMob(2) : {},
-      /* close da cabeca foil no inicio de "Swap the head": a camera mergulha nela e depois se afasta para a troca.
-         Centro da cabeca no mundo = y + 1,18 * s (o cabecote vai de ~0,95 a 1,42 no modelo). */
-      y1 = mob ? m1.y : 0,
-      s1 = mob ? m1.s : 1,
-      hy = y1 + 1.18 * s1;
+    /* meia-largura visivel em z = 0: 10 * tan(15 graus) * aspecto = 2,679 * aspecto */
+    const hw = 2.679 * (innerWidth / innerHeight),
+      m = [0, 1, 2, 3, 4].map((i) => (mob ? fitMob(i) : {})),
+      /* close da cabeca foil (capitulo 01). Centro da cabeca no mundo = y + 1,18 * s (cabecote de ~0,95 a 1,42).
+         No celular um pouco mais longe: a cabeca cabe entre o menu e o texto */
+      y1 = mob ? m[1].y : 0,
+      s1 = mob ? m[1].s : 1,
+      hy = y1 + 1.18 * s1,
+      macro = (o) =>
+        kf({ ...m[1], bg: UM, ry: 0.55, rx: 0.12, cz: (mob ? 3.2 : 2.7) * s1, cy: hy + 0.3 * s1, ty: hy, ez: D, ...o });
     K = [
-      [kf({ ...m0 })],
-      [
-        /* no celular um pouco mais longe: a cabeca cabe entre o menu e o texto */
-        kf({ ...m1, bg: CH, ry: 0.55, rx: 0.12, cz: (mob ? 2.4 : 1.75) * s1, cy: hy + 0.3 * s1, ty: hy }),
-        kf({ ...m1, bg: CH, ry: 0.5 }),
-        kf({ ...m1, bg: CH, ry: -0.4, hm: 1 }),
-      ],
-      [kf({ ...m2, bg: CR, ry: -0.5, hm: 1 })],
-      [kf({ ...cl, bg: CH, ry: 0, hm: 1, cz: 3.9, cy: 0.45, ty: mob ? -0.05 : 0.35 })],
-      [kf({ ...cl, bg: BL, ry: 0.35, rx: -0.4, hm: 1, cz: 3.9, cy: -3.2, ty: mob ? -1.0 : -1.3 })],
-      [kf({ bg: IV, x: w, ry: -0.5, hm: 1, y: mob ? 1.03 : 0, s: mob ? 0.4 : 1 })],
+      /* hero: aparelho no arco, a direita do texto no desktop */
+      [kf({ ...m[0], x: mob ? 0 : 0.22 * hw, ry: -0.35 }), kf({ ...m[0], x: mob ? 0 : 0.22 * hw, ry: 0.1 })],
+      [macro(), macro({ ry: 0.25, rx: 0.06 })],
+      [kf({ ...m[2], bg: RW, ry: 0.5, ez: 2 * D }), kf({ ...m[2], bg: RW, ry: -0.4, hm: 1, ez: 2 * D })],
+      [kf({ ...m[3], bg: NI, ry: -0.5, hm: 1, ez: 3 * D })],
+      /* cuidados: de lado, mostrando a base (porta de carga) e o perfil */
+      [kf({ ...m[4], bg: UM2, x: mob ? 0 : 0.24 * hw, ry: 1.0, rx: -0.12, hm: 0, ez: 4 * D })],
+      /* compra: o aparelho fica no meio da metade esquerda */
+      [kf({ bg: NI, x: mob ? 0 : -0.55 * hw, ry: -0.5, hm: 1, y: mob ? 1.03 : 0, s: mob ? 0.4 : 1, ez: 5 * D })],
     ].map((a) => (a.length > 1 ? a : [a[0], a[0]]));
   }
+  const EX = 3;
   let AN = [];
   function mkA() {
     AN = [];
@@ -181,9 +239,10 @@ function init3D(gltf) {
       K[i].forEach((k, j) => AN.push({ y: i || j ? t + at[j] * h : 0, k }));
     });
   }
-  const cur = kf({ bg: IV.slice() }),
+  const cur = kf({ bg: NI.slice() }),
     tgt = kf({}),
-    sm = (t) => t * t * (3 - 2 * t);
+    sm = (t) => t * t * (3 - 2 * t),
+    KEYS = ["x", "y", "s", "ry", "rx", "hm", "cz", "cy", "ty", "ez"];
   function sample() {
     const y = scrollY + innerHeight * 0.5;
     let j = 0;
@@ -191,29 +250,25 @@ function init3D(gltf) {
     const a = AN[j],
       b = AN[j + 1],
       f = sm(c01((y - a.y) / Math.max(1, b.y - a.y)));
-    for (const k of ["x", "y", "s", "ry", "rx", "hm", "cz", "cy", "ty"]) tgt[k] = a.k[k] + (b.k[k] - a.k[k]) * f;
+    for (const k of KEYS) tgt[k] = a.k[k] + (b.k[k] - a.k[k]) * f;
     tgt.bg = a.k.bg.map((v, i) => v + (b.k.bg[i] - v) * f);
     fadeText();
     /* area de compra mais alta que a tela (telas baixas): o menu ganha fundo para nao ficar sobre o texto que rola */
-    document.body.classList.toggle("navbg", secs[5].getBoundingClientRect().top < -2);
-    $("#hsw").style.opacity = op[2];
-    $("#hsw").style.visibility = op[2] > 0.02 ? "visible" : "hidden";
+    const bz = buy.getBoundingClientRect();
+    document.body.classList.toggle("navbg", bz.top < -2);
+    $("#hsw").style.opacity = op[EX];
+    $("#hsw").style.visibility = op[EX] > 0.02 ? "visible" : "hidden";
     /* ao sair da secao "Explore as pecas", solta selecao, hover e "segure" para o modelo voltar ao normal */
-    if (op[2] < 0.05 && (sel || hov || holding)) {
+    if (op[EX] < 0.05 && (sel || hov || holding)) {
       sel = hov = null;
       hset(false);
       panel();
     }
-    /* movimento reduzido: sem dedo, so um toque ao entrar na secao */
-    if (RM && op[3] > 0.7 && !shot) {
-      shot = true;
-      fire();
-    }
-    if (op[3] < 0.2) shot = false;
     /* depois da area de compra o canvas some (as secoes comuns tem fundo proprio) e o loop pula o desenho */
-    cvOff = secs[5].getBoundingClientRect().bottom < 0;
-    $("#cv").style.visibility = halo.style.visibility = vig.style.visibility = cvOff ? "hidden" : "visible";
+    cvOff = bz.bottom < 0;
+    $("#cv").style.visibility = cvOff ? "hidden" : "visible";
   }
+  const buy = secs[secs.length - 1];
   function size() {
     const w = innerWidth,
       h = innerHeight;
@@ -223,7 +278,6 @@ function init3D(gltf) {
     C.updateProjectionMatrix();
     mkK();
     mkA();
-    heroFit();
   }
   size();
   addEventListener("resize", size);
@@ -231,7 +285,6 @@ function init3D(gltf) {
   window.relayout = () => {
     mkK();
     mkA();
-    heroFit();
   };
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(window.relayout);
   if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", window.relayout);
@@ -251,10 +304,6 @@ function init3D(gltf) {
     dead = true;
     noGL();
   });
-  /* brilho atras do aparelho: segue o centro dele na tela */
-  const halo = $("#halo"),
-    vig = $("#vig"),
-    hc = new THREE.Vector3();
   let first = true;
   const HS = {
     foil: { g: foil, l: [0, 1.05, 0.36], n: [0, 0, 1] },
@@ -264,53 +313,118 @@ function init3D(gltf) {
     led: { g: led, l: [0, -1.19, 0.26], n: [0, 0, 1] },
     port: { g: port, l: [0, -1.8, 0], n: [0, -1, 0] },
   };
+  /* zoom de cada peca: rotacao para ela ficar de frente (a porta de carga inclina para mostrar a base) */
+  const FOC = {
+      foil: { ry: 0.45, rx: 0.15 },
+      round: { ry: 0.45, rx: 0.15 },
+      body: { ry: 0.7, rx: 0 },
+      /* botao: enquadra o botao e o visor juntos (ao ligar, o visor acende): mira entre os dois, um pouco mais longe */
+      btn: { ry: 0.12, rx: 0, y: -0.55, z: 1.3 },
+      led: { ry: -0.08, rx: 0 },
+      port: { ry: 0.25, rx: -0.85 },
+    },
+    aim = {};
   const hbs = {};
   $$(".hs").forEach((b) => (hbs[b.dataset.k] = b));
+  /* arrastar na area da secao (elemento #drag, touch-action: pan-y) gira o aparelho; toque sem arrastar solta o zoom */
+  let uRy = 0,
+    uT = 0,
+    dX = null,
+    dMoved = false;
+  const dg = $("#drag");
+  dg.addEventListener("pointerdown", (e) => {
+    dX = e.clientX;
+    dMoved = false;
+    dg.setPointerCapture(e.pointerId);
+    dg.classList.add("on");
+  });
+  dg.addEventListener("pointermove", (e) => {
+    if (dX === null) return;
+    const d = e.clientX - dX;
+    if (Math.abs(d) > 2) dMoved = true;
+    uT += d * 0.009;
+    dX = e.clientX;
+  });
+  const dEnd = (e) => {
+    if (dX !== null && !dMoved && e.type === "pointerup" && sel) {
+      sel = null;
+      panel();
+    }
+    dX = null;
+    dg.classList.remove("on");
+  };
+  ["pointerup", "pointercancel"].forEach((n) => dg.addEventListener(n, dEnd));
+  /* vetores reaproveitados a cada quadro (criar objetos no laco gera pausas do coletor de lixo) */
   const v = new THREE.Vector3(),
-    n = new THREE.Vector3();
+    n = new THREE.Vector3(),
+    tc = new THREE.Vector3();
   let cvOff = false,
     last = performance.now(),
     t0 = last,
     ex = 0,
     th = 0, // 0 = rosa, 1 = azul
-    thShown = -1;
+    thShown = -1,
+    pwr = 0; // 0 = desligado, 1 = ligado (suavizado)
   function frame(now) {
     if (dead) return;
     requestAnimationFrame(frame);
     if (document.hidden) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    /* com o poster na tela, o 3D entra ja no lugar (o poster faz a entrada e some por cima); sem ele, sobe e aparece */
-    if (first && $("#poster").classList.contains("in")) t0 = now - 1900;
     sample();
     if (cvOff) return;
     const k = RM ? 1 : 1 - Math.exp(-dt * 6);
-    for (const q of ["x", "y", "s", "ry", "rx", "cz", "cy", "ty"]) cur[q] += (tgt[q] - cur[q]) * k;
+    /* "Explore as pecas": com uma peca escolhida, a camera chega perto e mira a altura dela, e o aparelho gira para a
+       peca ficar de frente (FOC). Altura da peca no mundo = y + s * (ly * cos(rx) - lz * sin(rx)). */
+    let A = tgt;
+    if (op[EX] > 0.5 && sel && !holding) {
+      const f = FOC[sel],
+        l = HS[sel].l,
+        wy = tgt.y + tgt.s * ((f.y !== undefined ? f.y : l[1]) * Math.cos(f.rx) - l[2] * Math.sin(f.rx));
+      A = Object.assign(aim, tgt, { ry: f.ry, rx: f.rx, cz: (mob ? 4.6 : 4.1) * (f.z || 1) * tgt.s, cy: wy + 0.25 * tgt.s, ty: wy });
+    }
+    /* o corredor anda um pouco mais devagar que o aparelho: passar pelo arco tem peso (inercia, como no Oryzo) */
+    for (const q of KEYS) if (q !== "hm") cur[q] += (A[q] - cur[q]) * (q === "ez" && !RM ? 1 - Math.exp(-dt * 3.2) : k);
+    /* arrastar gira o aparelho (so em "Explore as pecas"; ao sair, volta) */
+    if (op[EX] < 0.05) uT = 0;
+    uRy += (uT - uRy) * k;
     const hmT =
-      op[2] > 0.5 && (sel === "foil" || hov === "foil")
+      op[EX] > 0.5 && (sel === "foil" || hov === "foil")
         ? 0
-        : op[2] > 0.5 && (sel === "round" || hov === "round")
+        : op[EX] > 0.5 && (sel === "round" || hov === "round")
           ? 1
           : tgt.hm;
     cur.hm += (hmT - cur.hm) * k;
     for (let i = 0; i < 3; i++) cur.bg[i] += (tgt.bg[i] - cur.bg[i]) * k;
-    const bgc = `rgb(${cur.bg.map(Math.round)})`;
-    document.body.style.background = bgc;
-    document.documentElement.style.setProperty("--bg", bgc);
-    const lum = (0.2126 * cur.bg[0] + 0.7152 * cur.bg[1] + 0.0722 * cur.bg[2]) / 255;
-    document.body.classList.toggle("dkbg", lum < 0.6);
-    /* quanto mais escuro o fundo, mais as bordas apagam (a luz fica so no aparelho) */
-    vig.style.opacity = c01((0.6 - lum) / 0.4);
+    S.background.setRGB(cur.bg[0] / 255, cur.bg[1] / 255, cur.bg[2] / 255).convertSRGBToLinear();
+    S.fog.color.copy(S.background);
+    document.documentElement.style.setProperty("--bg", `rgb(${cur.bg.map(Math.round)})`);
+    /* o corredor acompanha o aparelho em x, y e escala; anda em z conforme o capitulo */
+    env.position.set(cur.x, cur.y, 0);
+    env.scale.setScalar(cur.s);
+    corr.position.z = cur.ez;
     ex += ((holding ? 1 : 0) - ex) * (RM ? 1 : Math.min(1, dt * 4));
     const it = RM ? 1 : 1 - Math.pow(1 - c01((now - t0) / 1900), 3);
     rx += (px - rx) * k;
     rY += (py - rY) * k;
-    press = Math.max(0, press - dt * (RM ? 4 : 2.2));
-    const pe = press * press;
     M.position.set(cur.x, cur.y - (1 - it) * 1.6, 0);
-    M.scale.setScalar(cur.s * (1 + (1 - it) * 0.1) * (1 - 0.03 * pe));
-    M.rotation.y = cur.ry + rx * 0.105;
+    M.scale.setScalar(cur.s * (1 + (1 - it) * 0.1));
+    M.rotation.y = cur.ry + rx * 0.105 + uRy;
     M.rotation.x = cur.rx + rY * 0.105;
+    /* ligar no zoom do botao (power, main.js): o visor acende (lk) e o aparelho vibra como um motor ligado;
+       o botao afunda por ~0,3 s a cada toque. Com movimento reduzido: visor acende, sem tremer. */
+    const pzm = sel === "btn" && op[EX] > 0.5;
+    pwr += ((pzm && power ? 1 : 0) - pwr) * Math.min(1, dt * 7);
+    const lk = pzm ? 0.12 + 0.88 * pwr : 1,
+      bp = c01(1 - (now - pressT) / 300);
+    btn.position.z = -0.028 * Math.sin(bp * Math.PI);
+    M.rotation.z = 0;
+    if (pwr > 0.01 && !RM) {
+      const a = pwr * cur.s;
+      M.position.x += Math.sin(now * 0.47) * 0.006 * a + Math.sin(now * 0.83) * 0.003 * a;
+      M.position.y += Math.cos(now * 0.61) * 0.004 * a;
+      M.rotation.z = Math.sin(now * 0.53) * 0.004 * pwr;
+    }
     C.position.set(0, cur.cy, cur.cz);
     C.lookAt(0, cur.ty, 0);
     const hm = cur.hm,
@@ -330,7 +444,6 @@ function init3D(gltf) {
     foil.position.y += 1.15 * (1 - sf);
     round.scale.setScalar(Math.max(sr, 0.001));
     round.position.y += 1.15 * (1 - sr);
-    btn.position.z = -0.025 * pe;
     const ay = (fa ? foil : round).position.y;
     ln.scale.y = Math.max(0.01, ay);
     ln.material.opacity = REM ? Math.max(rex, 4 * hm * (1 - hm)) * 0.9 : 0;
@@ -343,14 +456,14 @@ function init3D(gltf) {
         foil: sf,
         round: sr,
       },
-      act = op[2] > 0.3 ? sel || hov : null;
+      act = op[EX] > 0.3 ? sel || hov : null;
+    /* peca escolhida: brilho proprio (emissive). As outras continuam opacas: esmaecer com transparencia deixava o corpo
+       translucido, com faixas das pecas de dentro aparecendo (bug) */
     for (const key in parts) {
       const p = parts[key],
-        dim = act ? (act === key ? 1 : key === "led" ? 0.8 : 0.45) : 1;
-      p.d += (dim - p.d) * k;
-      const o = (key === "foil" || key === "round" ? 1 : pres[key]) * p.d * it,
-        e = act === key ? 0.12 : 0;
-      p.g.visible = pres[key] * p.d * it > 0.01;
+        o = (key === "foil" || key === "round" ? 1 : pres[key]) * it,
+        e = act === key ? 0.16 : 0;
+      p.g.visible = pres[key] * it > 0.01;
       for (const m of p.m) {
         if (m.opacity !== o) {
           m.opacity = o;
@@ -362,6 +475,7 @@ function init3D(gltf) {
         }
         if (m.emissive) {
           m.emissive.copy(m.userData.em);
+          if (key === "led") m.emissive.multiplyScalar(lk);
           if (e) m.emissive.r += e * 0.78, (m.emissive.g += e * 0.7), (m.emissive.b += e * 0.54);
         }
       }
@@ -376,14 +490,11 @@ function init3D(gltf) {
     R.render(S, C);
     if (first) {
       first = false;
-      loadP(1);
       document.body.classList.add("gl");
     }
-    hc.set(0, -0.18, 0).applyMatrix4(M.matrixWorld).project(C);
-    halo.style.transform = `translate(${(hc.x * 0.5 + 0.5) * innerWidth}px,${(-hc.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-50%) scale(${Math.min(1.8, (cur.s * 10) / cur.cz)})`;
     const w = innerWidth,
       h = innerHeight,
-      vis = op[2] > 0.2;
+      vis = op[EX] > 0.2;
     for (const key in HS) {
       const d = HS[key],
         b = hbs[key];
@@ -393,54 +504,15 @@ function init3D(gltf) {
         d.g.updateWorldMatrix(true, false);
         v.set(...d.l).applyMatrix4(d.g.matrixWorld);
         n.set(...d.n).applyQuaternion(M.quaternion);
-        show = n.dot(C.position.clone().sub(v).normalize()) > 0.1;
+        show = n.dot(tc.copy(C.position).sub(v).normalize()) > 0.1;
         v.project(C);
         b.style.transform = `translate(${(v.x * 0.5 + 0.5) * w}px,${(-v.y * 0.5 + 0.5) * h}px)`;
       }
       b.classList.toggle("off", !show);
+      b.classList.toggle("sel", key === sel);
+      b.classList.toggle("pw", key === "btn" && pwr > 0.5);
     }
-    if (op[3] > 0.05) {
-      btn.updateWorldMatrix(true, false);
-      v.set(0, 0.034, 0.3).applyMatrix4(btn.matrixWorld).project(C);
-      const bx = (v.x * 0.5 + 0.5) * w,
-        by = (-v.y * 0.5 + 0.5) * h;
-      rp.style.left = bx + "px";
-      rp.style.top = by + "px";
-      /* dedo: entra, toca o botao (fire no meio do toque), solta e sai; repete enquanto a secao esta na tela */
-      const fg = $("#fg");
-      if (!RM && op[3] > 0.35) {
-        if (now - tapT0 > 4400) {
-          tapT0 = now;
-          tapFired = false;
-        }
-        const t = (now - tapT0) / 1000,
-          ez = (x) => 1 - Math.pow(1 - c01(x), 3),
-          fs = mob ? 0.8 : 1;
-        let off = 0,
-          sc = 1,
-          a = 1;
-        if (t < 0.9) {
-          off = 1 - ez(t / 0.9);
-          a = c01(t / 0.35);
-        } else if (t < 1.5) {
-          sc = t < 1.05 ? 1 - 0.1 * ((t - 0.9) / 0.15) : 0.9 + 0.1 * ez((t - 1.05) / 0.45);
-          if (t >= 1 && !tapFired) {
-            tapFired = true;
-            fire();
-          }
-        } else if (t < 2.5) {
-          off = ez((t - 1.5) / 0.9);
-          a = 1 - c01((t - 1.7) / 0.7);
-        } else a = 0;
-        const press = t > 0.9 && t < 1.3 ? 5 : 0;
-        fg.style.opacity = a * c01(op[3] * 2);
-        fg.style.transform = `translate(${bx + off * 150 * fs - press}px,${by + off * 190 * fs - press}px) rotate(-28deg) scale(${sc * fs})`;
-      } else {
-        fg.style.opacity = 0;
-        tapT0 = -1e9;
-      }
-    }
-    $("#hcap").textContent = op[1] > 0.2 ? T[L][hm < 0.5 ? "cap1" : "cap2"] : "";
+    $("#hcap").textContent = op[2] > 0.2 ? T[L][hm < 0.5 ? "cap1" : "cap2"] : "";
   }
   requestAnimationFrame(frame);
 }
