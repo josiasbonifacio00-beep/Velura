@@ -2,14 +2,14 @@
 <html lang="en-US">
   <head>
     <meta charset="UTF-8" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>VELURA — Two heads. One easy routine.</title>
     <meta
       name="description"
       content="A rechargeable shaver with a wide foil head and a small round head. Swap them to fit the job."
     />
-    <meta name="theme-color" content="#f6f2ea" />
+    <meta name="theme-color" content="#17110e" />
     <meta property="og:type" content="product" />
     <meta property="og:title" content="VELURA — Two heads. One easy routine." />
     <meta
@@ -19,13 +19,13 @@
     <meta property="og:image" content="img/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="VELURA 2-in-1 shaver in pink with its foil head and round head" />
+    <meta property="og:image:alt" content="VELURA 2-in-1 shaver in pink with the foil head attached, in an arched alcove" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="apple-mobile-web-app-title" content="VELURA" />
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23242321'/%3E%3Cpath d='M18 18l14 30 14-30' fill='none' stroke='%23c7b28a' stroke-width='4'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2317110e'/%3E%3Cpath d='M18 18l14 30 14-30' fill='none' stroke='%23e2a98f' stroke-width='4'/%3E%3C/svg%3E"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -47,12 +47,15 @@
     </script>
   </head>
   <body>
-    <div class="halo" id="halo"></div>
-    <div class="arch" id="arch"></div>
     <canvas id="cv" aria-hidden="true"></canvas>
-    <div class="vig" id="vig"></div>
     <header class="nav">
       <a class="logo" id="brand" href="#">VELURA</a>
+      <nav class="nl" aria-label="Sections">
+        <a href="#s1" data-go="s1" data-t="nv1"></a>
+        <a href="#s4" data-go="s4" data-t="nv2"></a>
+        <a href="#details" data-go="details" data-t="sh"></a>
+        <a href="#faq" data-go="faq" data-t="nv3"></a>
+      </nav>
       <div class="nr">
         <div class="lang" role="group" aria-label="Language">
           <button data-l="en" aria-pressed="true">EN</button
@@ -62,6 +65,13 @@
         <button class="bag" id="bag"><span data-t="bag"></span> (<span id="cnt">0</span>)</button>
       </div>
     </header>
+    <!-- indice dos capitulos (como as salas do Cartier): o capitulo atual acende; ver chapters() no main.js -->
+    <nav class="chx" id="chx" aria-label="Chapters">
+      <a href="#s1" data-go="s1"><b>01</b><span data-t="n1"></span></a>
+      <a href="#s2" data-go="s2"><b>02</b><span data-t="n2"></span></a>
+      <a href="#s3" data-go="s3"><b>03</b><span data-t="n3"></span></a>
+      <a href="#s4" data-go="s4"><b>04</b><span data-t="n4"></span></a>
+    </nav>
     <div id="hsw">
       <button class="hs off" data-k="foil" aria-label="Foil head"><i data-t="ix1"></i></button
       ><button class="hs off" data-k="round" aria-label="Round head"><i data-t="ix2"></i></button
@@ -70,20 +80,12 @@
       ><button class="hs off" data-k="led" aria-label="Battery display"><i data-t="ix5"></i></button
       ><button class="hs off" data-k="port" aria-label="Charging port"><i data-t="ix6"></i></button>
     </div>
-    <div id="rp"></div>
-    <svg id="fg" viewBox="0 0 100 250" aria-hidden="true">
-      <defs>
-        <linearGradient id="fgg" x1="0" x2="1"><stop offset="0" stop-color="#f4dcd2" /><stop offset="1" stop-color="#e0b2a2" /></linearGradient>
-      </defs>
-      <path d="M26 30 Q26 6 50 6 Q74 6 74 30 L80 250 L20 250 Z" fill="url(#fgg)" />
-      <path d="M38 21 Q38 12 50 12 Q62 12 62 21 L60 46 Q50 53 40 46 Z" fill="#fcefe9" opacity=".85" />
-      <path d="M31 118 H69 M33 148 H67" stroke="#c98f7e" stroke-width="1.2" opacity=".4" stroke-linecap="round" fill="none" />
-    </svg>
     <main>
-      <section class="sc" style="height: 130vh">
+      <!-- secoes .sc fixadas: o aparelho 3D atravessa um corredor de arcos, um arco por capitulo (product3d.js) -->
+      <section class="sc" style="height: 170vh">
         <div class="pin">
-          <img class="poster" id="poster" src="img/poster.webp" width="1080" height="1080" alt="" fetchpriority="high" />
-          <div class="tx dk">
+          <img class="poster" id="poster" src="img/poster.webp" width="1080" height="1080" alt="" />
+          <div class="tx">
             <p class="eye" data-t="eye"></p>
             <h1>
               <span><i data-t="h1a"></i></span><span><i data-t="h1b"></i></span>
@@ -99,20 +101,34 @@
             <button class="btn" data-c="pink" aria-pressed="true" data-t="cp"></button
             ><button class="btn" data-c="blue" aria-pressed="false" data-t="cb"></button>
           </div>
+          <div class="scrl" aria-hidden="true"><span data-t="scr"></span><i></i></div>
         </div>
       </section>
-      <section class="sc" id="s1" style="height: 300vh">
+      <section class="sc" id="s1" style="height: 240vh">
         <div class="pin">
-          <div class="tx lt">
+          <div class="tx">
+            <p class="cn">01</p>
+            <h2 data-t="c1h"></h2>
+            <p data-t="c1p"></p>
+          </div>
+        </div>
+      </section>
+      <section class="sc" id="s2" style="height: 300vh">
+        <div class="pin">
+          <div class="tx">
+            <p class="cn">02</p>
             <h2 data-t="h2a"></h2>
             <p data-t="p2"></p>
             <div id="hcap"></div>
           </div>
         </div>
       </section>
-      <section class="sc" style="height: 260vh">
+      <section class="sc x3d" id="s3" style="height: 260vh">
         <div class="pin">
-          <div class="tx dk">
+          <!-- area para arrastar e girar o aparelho (touch-action: pan-y deixa a pagina rolar na vertical) -->
+          <div class="drag" id="drag" aria-hidden="true"></div>
+          <div class="tx">
+            <p class="cn">03</p>
             <h2 data-t="h3a"></h2>
             <p data-t="p3"></p>
             <div class="ctas"><button class="btn solid hold" id="hold" data-t="hold"></button></div>
@@ -139,26 +155,21 @@
           </div>
         </div>
       </section>
-      <section class="sc" style="height: 200vh">
+      <section class="sc" id="s4" style="height: 240vh">
         <div class="pin">
-          <div class="tx lt">
-            <h2 data-t="h4a"></h2>
-            <p data-t="p4"></p>
-            <div class="ctas"><button class="btn solid" id="try" data-t="try"></button></div>
-          </div>
-        </div>
-      </section>
-      <section class="sc" style="height: 200vh">
-        <div class="pin">
-          <div class="tx dk">
-            <h2 data-t="h5a"></h2>
-            <p data-t="p5"></p>
-            <p id="cab" data-t="cab" hidden></p>
+          <div class="tx">
+            <p class="cn">04</p>
+            <h2 data-t="hw"></h2>
+            <ol class="steps">
+              <li><b>01</b><div><h3 data-t="hw1t"></h3><p data-t="p5"></p><p id="cab" data-t="cab" hidden></p></div></li>
+              <li><b>02</b><div><h3 data-t="hw2t"></h3><p data-t="hw2p"></p></div></li>
+              <li><b>03</b><div><h3 data-t="hw3t"></h3><p data-t="hw3p"></p></div></li>
+            </ol>
           </div>
         </div>
       </section>
       <section class="sc buyx" id="s5">
-        <div class="dk" id="buy">
+        <div id="buy">
           <h2 data-t="h6a"></h2>
           <dl>
             <div>
@@ -237,42 +248,42 @@
         <div class="wrap">
           <h2 class="hd rv" id="fh-h" data-t="fh"></h2>
           <div class="acc">
-          <div class="ai rv" style="--i: 1">
-            <button class="aq" id="aq1" aria-expanded="false" aria-controls="ap1">
-              <b>01</b><span data-t="q1"></span><i class="pm" aria-hidden="true"></i>
-            </button>
-            <div class="ap" id="ap1" role="region" aria-labelledby="aq1"><div><p data-t="a1"></p></div></div>
-          </div>
-          <div class="ai rv" style="--i: 2">
-            <button class="aq" id="aq2" aria-expanded="false" aria-controls="ap2">
-              <b>02</b><span data-t="q2"></span><i class="pm" aria-hidden="true"></i>
-            </button>
-            <div class="ap" id="ap2" role="region" aria-labelledby="aq2"><div><p data-t="a2"></p></div></div>
-          </div>
-          <div class="ai rv" style="--i: 3">
-            <button class="aq" id="aq3" aria-expanded="false" aria-controls="ap3">
-              <b>03</b><span data-t="q3"></span><i class="pm" aria-hidden="true"></i>
-            </button>
-            <div class="ap" id="ap3" role="region" aria-labelledby="aq3"><div><p data-t="a3"></p></div></div>
-          </div>
-          <div class="ai rv" style="--i: 4">
-            <button class="aq" id="aq4" aria-expanded="false" aria-controls="ap4">
-              <b>04</b><span data-t="q4"></span><i class="pm" aria-hidden="true"></i>
-            </button>
-            <div class="ap" id="ap4" role="region" aria-labelledby="aq4"><div><p data-t="a4"></p></div></div>
-          </div>
-          <div class="ai rv" style="--i: 5">
-            <button class="aq" id="aq5" aria-expanded="false" aria-controls="ap5">
-              <b>05</b><span data-t="q5"></span><i class="pm" aria-hidden="true"></i>
-            </button>
-            <div class="ap" id="ap5" role="region" aria-labelledby="aq5"><div><p data-t="a5"></p></div></div>
-          </div>
-          <div class="ai rv" style="--i: 6">
-            <button class="aq" id="aq6" aria-expanded="false" aria-controls="ap6">
-              <b>06</b><span data-t="q6"></span><i class="pm" aria-hidden="true"></i>
-            </button>
-            <div class="ap" id="ap6" role="region" aria-labelledby="aq6"><div><p data-t="a6"></p></div></div>
-          </div>
+            <div class="ai rv" style="--i: 1">
+              <button class="aq" id="aq1" aria-expanded="false" aria-controls="ap1">
+                <b>01</b><span data-t="q1"></span><i class="pm" aria-hidden="true"></i>
+              </button>
+              <div class="ap" id="ap1" role="region" aria-labelledby="aq1"><div><p data-t="a1"></p></div></div>
+            </div>
+            <div class="ai rv" style="--i: 2">
+              <button class="aq" id="aq2" aria-expanded="false" aria-controls="ap2">
+                <b>02</b><span data-t="q2"></span><i class="pm" aria-hidden="true"></i>
+              </button>
+              <div class="ap" id="ap2" role="region" aria-labelledby="aq2"><div><p data-t="a2"></p></div></div>
+            </div>
+            <div class="ai rv" style="--i: 3">
+              <button class="aq" id="aq3" aria-expanded="false" aria-controls="ap3">
+                <b>03</b><span data-t="q3"></span><i class="pm" aria-hidden="true"></i>
+              </button>
+              <div class="ap" id="ap3" role="region" aria-labelledby="aq3"><div><p data-t="a3"></p></div></div>
+            </div>
+            <div class="ai rv" style="--i: 4">
+              <button class="aq" id="aq4" aria-expanded="false" aria-controls="ap4">
+                <b>04</b><span data-t="q4"></span><i class="pm" aria-hidden="true"></i>
+              </button>
+              <div class="ap" id="ap4" role="region" aria-labelledby="aq4"><div><p data-t="a4"></p></div></div>
+            </div>
+            <div class="ai rv" style="--i: 5">
+              <button class="aq" id="aq5" aria-expanded="false" aria-controls="ap5">
+                <b>05</b><span data-t="q5"></span><i class="pm" aria-hidden="true"></i>
+              </button>
+              <div class="ap" id="ap5" role="region" aria-labelledby="aq5"><div><p data-t="a5"></p></div></div>
+            </div>
+            <div class="ai rv" style="--i: 6">
+              <button class="aq" id="aq6" aria-expanded="false" aria-controls="ap6">
+                <b>06</b><span data-t="q6"></span><i class="pm" aria-hidden="true"></i>
+              </button>
+              <div class="ap" id="ap6" role="region" aria-labelledby="aq6"><div><p data-t="a6"></p></div></div>
+            </div>
           </div>
         </div>
       </section>
@@ -324,6 +335,7 @@
       <button id="px" aria-label="Close">×</button>
       <h3 id="pt"></h3>
       <p id="pb"></p>
+      <button class="btn pw" id="pw" aria-pressed="false" hidden></button>
     </div>
     <div class="ov" id="ov"></div>
     <aside class="dr" id="dr" aria-label="Bag" inert>
