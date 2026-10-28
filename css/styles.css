@@ -1,11 +1,14 @@
 /* VELURA - styles.css
    Identidade visual, layout e responsividade. */
+/* noite quente (Oryzo/Cartier): fundo cafe escuro, texto marfim, detalhes em rose dourado.
+   Os nomes antigos foram mantidos e trocaram de papel: ivory = FUNDO, charcoal = TEXTO, champagne = rose dourado */
 :root {
-  --ivory: #f6f2ea;
-  --cream: #ede6da;
-  --champagne: #c7b28a;
-  --charcoal: #242321;
-  --blush: #d8b6ae;
+  --ivory: #17110e;
+  --cream: #1e1612;
+  --sand: #241a15;
+  --champagne: #e2a98f;
+  --charcoal: #f3e8de;
+  --blush: #e9c2b2;
   --serif: "Cormorant Garamond", Georgia, serif;
   --sans: "Jost", system-ui, sans-serif;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -60,54 +63,197 @@ button {
   z-index: 1;
   pointer-events: none;
 }
-.arch {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  width: min(62vw, 340px);
-  height: min(76vh, 640px);
-  transform: translate(-50%, -50%);
-  border: 1px solid var(--champagne);
-  border-radius: 999px 999px 0 0;
-  z-index: 0;
-  opacity: 0.9;
-  /* enquanto o 3D baixa, a moldura se desenha de baixo para cima (--lp = progresso, 0 a 1) */
-  clip-path: inset(calc((1 - var(--lp, 0)) * 100%) 0 0 0);
-  transition: clip-path 0.9s var(--ease);
-}
-/* brilho atras do aparelho (o 3D move o centro; antes dele, fica no lugar do poster) */
-.halo {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 80vh;
-  height: 80vh;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.22) 55%, transparent);
-  transform: translate(50vw, var(--py, 53vh)) translate(-50%, -50%);
-  z-index: 0;
-  pointer-events: none;
-  transition: opacity 0.8s;
-}
-.dkbg .halo {
-  opacity: 0.26;
-}
-/* "luz apagando": nas secoes escuras as bordas da tela escurecem e so o aparelho fica iluminado (opacidade vem do 3D) */
-.vig {
-  position: fixed;
+/* "Explore as pecas": a area toda da secao gira o aparelho ao arrastar na horizontal (rolagem vertical continua livre) */
+.drag {
+  position: absolute;
   inset: 0;
   z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  background: radial-gradient(ellipse 70% 75% at 50% 50%, transparent 30%, rgba(8, 7, 6, 0.75) 100%);
+  pointer-events: auto;
+  touch-action: pan-y;
+  cursor: grab;
 }
-@media (max-width: 820px) and (min-height: 520px) {
-  .vig {
-    background: radial-gradient(ellipse 95% 55% at 50% 36%, transparent 30%, rgba(8, 7, 6, 0.75) 100%);
+.drag.on {
+  cursor: grabbing;
+}
+/* ponto da peca escolhida: preenchido em rose dourado */
+.hs.sel {
+  background: var(--champagne);
+  border-color: var(--champagne);
+}
+.hs.sel::after {
+  border-color: var(--champagne);
+}
+/* aparelho ligado: o ponto do botao pulsa rapido */
+.hs.pw::after {
+  animation-duration: 0.55s;
+}
+/* botao Ligar/Desligar dentro do painel da peca (painel claro: botao escuro) */
+.pn .pw {
+  position: static;
+  margin-top: 0.9rem;
+  padding: 0.7rem 1.3rem;
+  font-size: 0.7rem;
+  background: var(--ivory);
+  color: var(--charcoal);
+  border: 1px solid var(--ivory);
+}
+.pn .pw[aria-pressed="true"] {
+  background: var(--champagne);
+  border-color: var(--champagne);
+  color: var(--ivory);
+}
+/* numero do capitulo (01, 02...) com um traco, acima do titulo */
+.cn {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.1rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  color: var(--champagne);
+}
+.cn::after {
+  content: "";
+  width: 3rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.7;
+}
+/* indice dos capitulos (desktop): numeros na lateral direita, o atual mostra o nome (classe cur, main.js) */
+.chx {
+  position: fixed;
+  right: clamp(1.25rem, 3vw, 3rem);
+  top: 50%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.9rem;
+  transform: translateY(-50%);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.5s,
+    visibility 0s 0.5s;
+}
+.chx.on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s;
+}
+.chx a {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: var(--charcoal);
+  text-decoration: none;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  transition: opacity 0.4s;
+}
+.chx a span {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.6s var(--ease);
+}
+.chx a::after {
+  content: "";
+  width: 1.4rem;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.5s var(--ease);
+}
+.chx a.cur,
+.chx a:hover,
+.chx a:focus-visible {
+  opacity: 1;
+}
+.chx a.cur {
+  color: var(--champagne);
+}
+.chx a.cur span {
+  max-width: 12rem;
+}
+.chx a.cur::after {
+  width: 2.8rem;
+}
+@media (max-width: 1023px), (max-height: 519px) {
+  .chx {
+    display: none;
   }
 }
-.nogl .vig {
-  display: none;
+/* aviso de rolagem no hero: uma linha que desce */
+.scrl {
+  position: absolute;
+  right: clamp(1.25rem, 4vw, 3rem);
+  bottom: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.scrl i {
+  width: 1px;
+  height: 2.6rem;
+  background: linear-gradient(to bottom, var(--champagne), transparent);
+  transform-origin: top;
+  animation: drop 2.2s var(--ease) infinite;
+}
+@keyframes drop {
+  from {
+    transform: scaleY(0);
+  }
+  60% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+@media (max-width: 820px) and (min-height: 520px) {
+  .scrl {
+    display: none;
+  }
+}
+/* passos do capitulo 04 (cuidados) */
+.steps {
+  list-style: none;
+  margin-top: 1.4rem;
+  border-top: 1px solid rgba(243, 232, 222, 0.18);
+}
+.steps li {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  gap: 0.4rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid rgba(243, 232, 222, 0.18);
+}
+.steps b {
+  padding-top: 0.35rem;
+  font-weight: 400;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  color: var(--champagne);
+}
+.steps h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 1.35rem;
+}
+.tx .steps p {
+  margin-top: 0.2rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 .nav {
   position: fixed;
@@ -125,8 +271,33 @@ button {
 .navbg .nav {
   background: var(--bg);
 }
-.dkbg .nav {
-  color: var(--ivory);
+/* links das secoes no menu (so em tela larga) */
+.nl {
+  display: flex;
+  gap: clamp(1.2rem, 2.4vw, 2.4rem);
+}
+.nl a {
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid transparent;
+  transition:
+    opacity 0.3s,
+    border-color 0.3s;
+}
+.nl a:hover,
+.nl a:focus-visible {
+  opacity: 1;
+  border-color: var(--champagne);
+}
+@media (max-width: 1023px) {
+  .nl {
+    display: none;
+  }
 }
 .logo {
   font-family: var(--serif);
@@ -182,6 +353,8 @@ button {
   z-index: 4;
   opacity: 0;
   visibility: hidden;
+  /* legivel sobre as paredes iluminadas do corredor */
+  text-shadow: 0 1px 22px rgba(10, 7, 5, 0.55);
 }
 .tx * {
   pointer-events: auto;
@@ -220,7 +393,7 @@ h2 {
   letter-spacing: -0.015em;
 }
 h1 {
-  font-size: clamp(2.6rem, 5.2vw, 5.4rem);
+  font-size: clamp(2.8rem, 6vw, 6.4rem);
 }
 .sc:first-child .tx {
   max-width: min(38rem, 44vw);
@@ -303,21 +476,11 @@ h1 span + span i {
   transform: translateY(-2px);
 }
 .btn:not(.solid):hover {
-  background: rgba(199, 178, 138, 0.22);
+  background: rgba(185, 122, 98, 0.22);
 }
 @keyframes up {
   to {
     transform: none;
-  }
-}
-@keyframes rip {
-  from {
-    transform: translate(-50%, -50%) scale(0.3);
-    opacity: 0.9;
-  }
-  to {
-    transform: translate(-50%, -50%) scale(3);
-    opacity: 0;
   }
 }
 @keyframes pulse {
@@ -337,7 +500,7 @@ h1 span + span i {
 .ix {
   list-style: none;
   margin-top: 1.4rem;
-  border-top: 1px solid rgba(36, 35, 33, 0.25);
+  border-top: 1px solid rgba(243, 232, 222, 0.25);
   display: grid;
   grid-template-columns: 1fr 1fr;
   column-gap: 1.5rem;
@@ -347,7 +510,7 @@ h1 span + span i {
   text-align: left;
   background: none;
   border: 0;
-  border-bottom: 1px solid rgba(36, 35, 33, 0.25);
+  border-bottom: 1px solid rgba(243, 232, 222, 0.25);
   padding: 0.7rem 0;
   cursor: pointer;
   display: flex;
@@ -389,7 +552,7 @@ h1 span + span i {
   margin: -14px 0 0 -14px;
   border-radius: 50%;
   border: 1.5px solid var(--charcoal);
-  background: rgba(246, 242, 234, 0.4);
+  background: rgba(23, 17, 14, 0.4);
   cursor: pointer;
   pointer-events: auto;
   transition: opacity 0.3s;
@@ -422,19 +585,6 @@ h1 span + span i {
 }
 .lab .hs i {
   opacity: 1;
-}
-#rp {
-  position: fixed;
-  width: 70px;
-  height: 70px;
-  border: 1.5px solid var(--champagne);
-  border-radius: 50%;
-  z-index: 3;
-  pointer-events: none;
-  opacity: 0;
-}
-#rp.go {
-  animation: rip 1s var(--ease);
 }
 .pn {
   position: fixed;
@@ -499,14 +649,14 @@ h1 span + span i {
 }
 dl {
   margin-top: 1.6rem;
-  border-top: 1px solid rgba(36, 35, 33, 0.25);
+  border-top: 1px solid rgba(243, 232, 222, 0.25);
 }
 dl div {
   display: flex;
   justify-content: space-between;
   gap: 1.5rem;
   padding: 0.9rem 0;
-  border-bottom: 1px solid rgba(36, 35, 33, 0.25);
+  border-bottom: 1px solid rgba(243, 232, 222, 0.25);
   font-size: 0.95rem;
 }
 dt {
@@ -529,7 +679,7 @@ dd {
   align-items: center;
   gap: 0.55rem;
   background: none;
-  border: 1px solid rgba(36, 35, 33, 0.25);
+  border: 1px solid rgba(243, 232, 222, 0.25);
   border-radius: 999px;
   padding: 0.55rem 1.1rem 0.55rem 0.6rem;
   font-size: 0.78rem;
@@ -546,13 +696,13 @@ dd {
   height: 1.1rem;
   border-radius: 50%;
   background: var(--c);
-  box-shadow: inset 0 0 0 1px rgba(36, 35, 33, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(243, 232, 222, 0.15);
 }
 .fin .btn {
   pointer-events: auto; /* .pin ignora cliques; os botoes de cor precisam recebe-los */
 }
 .fin .btn[aria-pressed="true"] {
-  background: rgba(199, 178, 138, 0.22);
+  background: rgba(185, 122, 98, 0.22);
   border-color: var(--charcoal);
 }
 .pr {
@@ -591,17 +741,12 @@ dd {
   visibility: visible;
 }
 /* 3D indisponivel (sem WebGL, arquivo nao carregou, economia de dados): vira uma pagina normal de texto */
-.nogl .arch,
 .nogl #fin,
 .nogl #hsw,
-.nogl #fg,
-.nogl #rp,
 .nogl #hold,
-.nogl #try,
 .nogl #ix,
 .nogl .pn,
-.nogl .sc:nth-of-type(3),
-.nogl .sc:nth-of-type(4) {
+.nogl .x3d {
   display: none !important;
 }
 .nogl .sc:not(.buyx) {
@@ -629,56 +774,25 @@ dd {
 .nogl .nav {
   background: var(--ivory);
 }
-/* poster do produto: recorte do proprio 3D, no mesmo lugar e tamanho (--py, --pz do main.js). Aparece primeiro,
-   o 3D assume por baixo dele e ele some (classe "gl"). No modo sem 3D, vira a imagem do hero. */
+/* poster (imagem do proprio 3D no corredor): so aparece no modo sem 3D, como imagem do hero */
 .poster {
-  position: absolute;
-  left: 50%;
-  top: var(--py, 56vh);
-  width: var(--pz, 71vh);
-  height: var(--pz, 71vh);
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, -50%) translateY(4vh);
-  transition:
-    opacity 1s var(--ease),
-    transform 1.4s var(--ease);
+  display: none;
 }
-.poster.in {
-  opacity: 1;
-  transform: translate(-50%, -50%);
-}
-.gl .poster {
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.7s,
-    visibility 0s 0.7s;
+.nogl .sc:first-child .pin {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 4.5rem 0 1.6rem;
 }
 .nogl .poster {
-  position: static;
   display: block;
   flex: 1 1 0;
   min-height: 0;
   width: auto;
-  height: auto;
-  max-width: 78%;
+  max-width: 100%;
   margin: 0 auto;
   object-fit: contain;
-  transform: none;
-  opacity: 1;
-  visibility: visible;
-  transition: none;
-}
-.nogl .halo {
-  display: none;
-}
-.nogl .sc:first-child .pin {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 5.5rem 0 1.6rem;
 }
 .nogl .sc:first-child .tx {
   position: static;
@@ -719,7 +833,7 @@ dd {
   cursor: pointer;
 }
 .li {
-  border-top: 1px solid rgba(36, 35, 33, 0.2);
+  border-top: 1px solid rgba(243, 232, 222, 0.2);
   padding-top: 1.2rem;
   line-height: 1.6;
 }
@@ -739,7 +853,7 @@ dd {
 .ov {
   position: fixed;
   inset: 0;
-  background: rgba(36, 35, 33, 0.5);
+  background: rgba(5, 3, 2, 0.6);
   z-index: 55;
   opacity: 0;
   pointer-events: none;
@@ -812,9 +926,19 @@ dd {
     bottom: calc(-1.6rem - env(safe-area-inset-bottom, 0px));
     background: linear-gradient(to top, var(--bg) 62%, transparent);
   }
+  /* painel da peca no topo, logo abaixo do menu: embaixo ele cobria o texto e as pilulas; com o zoom a peca fica no
+     meio da tela, entao o topo esta livre */
   .pn {
-    bottom: calc(5rem + var(--bh, 0rem) + env(safe-area-inset-bottom, 0px)); /* logo acima da linha de pilulas, que continua tocavel */
-    padding: 0.9rem 1.2rem;
+    top: calc(env(safe-area-inset-top, 0px) + 3.7rem);
+    bottom: auto;
+    transform: translate(-50%, -12px);
+    padding: 0.8rem 1.2rem;
+  }
+  .pn.on {
+    transform: translate(-50%, 0);
+  }
+  .pn p {
+    font-size: 0.85rem;
   }
   /* cores do hero no celular: bolinhas na lateral direita (o texto continua nos botoes, so a bolinha aparece) */
   .fin {
@@ -836,7 +960,7 @@ dd {
     padding: 0;
     font-size: 0;
     border-radius: 50%;
-    border-color: rgba(36, 35, 33, 0.25);
+    border-color: rgba(243, 232, 222, 0.25);
   }
   .fin .btn[data-c="pink"] {
     background: #e39a96;
@@ -882,7 +1006,7 @@ dd {
     gap: 1rem;
     padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
     background: var(--ivory);
-    border-top: 1px solid rgba(36, 35, 33, 0.15);
+    border-top: 1px solid rgba(243, 232, 222, 0.15);
     color: var(--charcoal);
     transform: translateY(100%);
     visibility: hidden;
@@ -907,12 +1031,8 @@ dd {
   .info.foot {
     padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
-  .arch {
-    top: 40%;
-    height: min(56vh, 520px);
-    top: var(--arch-top, 40%);
-    height: var(--arch-h, min(56svh, 520px));
-  }
+  /* hero de foto no celular: a foto fica entre o menu (56px) e 32% do fim da tela (o aparelho inteiro a mostra);
+     o texto fica embaixo, na areia. O 3D usa as mesmas medidas para cair sobre o aparelho da foto: ver mkK() */
   h1 {
     font-size: clamp(2.6rem, 12vw, 4rem);
   }
@@ -1053,7 +1173,7 @@ dd {
   background: var(--ivory);
   border-top: 1px solid var(--champagne);
   border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-  box-shadow: 0 -26px 40px -34px rgba(36, 35, 33, 0.45);
+  box-shadow: 0 -26px 40px -34px rgba(243, 232, 222, 0.45);
   pointer-events: none;
 }
 /* o arco sobe por cima do fim da area de compra: ela ganha o mesmo espaco embaixo */
@@ -1140,9 +1260,9 @@ dd {
   justify-content: space-between;
   gap: 2rem;
   padding: 1.4rem 1.3rem 1.5rem;
-  border: 1px solid rgba(36, 35, 33, 0.14);
+  border: 1px solid rgba(243, 232, 222, 0.14);
   border-radius: 1.4rem;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(216, 182, 174, 0.2));
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(226, 169, 143, 0.06));
   transition:
     translate 0.5s var(--ease),
     box-shadow 0.5s,
@@ -1158,7 +1278,7 @@ dd {
 }
 .tile:hover {
   translate: 0 -5px;
-  box-shadow: 0 22px 44px -26px rgba(36, 35, 33, 0.4);
+  box-shadow: 0 22px 44px -26px rgba(243, 232, 222, 0.4);
   border-color: var(--champagne);
 }
 .tl {
@@ -1190,10 +1310,10 @@ dd {
 }
 /* perguntas: acordeao com altura animada */
 .acc {
-  border-top: 1px solid rgba(36, 35, 33, 0.2);
+  border-top: 1px solid rgba(243, 232, 222, 0.2);
 }
 .ai {
-  border-bottom: 1px solid rgba(36, 35, 33, 0.2);
+  border-bottom: 1px solid rgba(243, 232, 222, 0.2);
 }
 .aq {
   display: grid;
@@ -1277,7 +1397,7 @@ dd {
   padding: 0.35rem;
   margin-bottom: 2.2rem;
   border-radius: 999px;
-  background: rgba(36, 35, 33, 0.06);
+  background: rgba(243, 232, 222, 0.06);
 }
 .tabs button {
   position: relative;
@@ -1349,8 +1469,8 @@ dd {
 }
 /* rodape escuro */
 .foot {
-  background: var(--charcoal);
-  color: var(--ivory);
+  background: #0f0b09;
+  color: var(--charcoal);
   padding-top: clamp(3rem, 8vh, 4.5rem);
   padding-bottom: clamp(2.2rem, 6vh, 3.2rem);
 }
@@ -1430,21 +1550,6 @@ dd {
   transform: translateX(0.9rem);
   background: var(--charcoal);
 }
-/* dedo que toca o botao (secao "Switch on"): posicao e movimento vem do product3d.js */
-#fg {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 100px;
-  height: 250px;
-  margin: -6px 0 0 -50px;
-  z-index: 3;
-  pointer-events: none;
-  opacity: 0;
-  transform-origin: 50px 6px;
-  filter: drop-shadow(0 16px 20px rgba(0, 0, 0, 0.4));
-  will-change: transform, opacity;
-}
 @media (max-width: 520px) {
   .tabs button {
     padding: 0.75rem 1rem;
@@ -1480,7 +1585,7 @@ dd {
   .ix button {
     width: auto;
     padding: 0.6rem 1rem;
-    border: 1px solid rgba(36, 35, 33, 0.25);
+    border: 1px solid rgba(243, 232, 222, 0.25);
     border-radius: 999px;
     white-space: nowrap;
   }
@@ -1539,13 +1644,8 @@ dd {
 .rm .tp,
 .rm .ti,
 .rm .tile,
-.rm .poster,
-.rm .arch,
 .rm .mt i::after {
   transition: none !important;
-}
-.rm #fg {
-  display: none;
 }
 .rm h1 i {
   animation: none;
@@ -1554,11 +1654,8 @@ dd {
 .rm .hs::after {
   animation: none;
 }
-.rm .poster {
-  transform: translate(-50%, -50%);
-}
-.rm .nogl .poster {
-  transform: none;
+.rm .scrl i {
+  animation: none;
 }
 [hidden] {
   display: none !important;
